@@ -50,21 +50,13 @@ func findUser(db *gorm.DB) User {
 	return user
 }
 
-func addUser(db *gorm.DB) []User {
-	var testuser = User{UserId: "test02", UserName: "test_02", UserPassword: "testpass02"}
-	err0 := db.Create(&testuser).Error
-	if err0 != nil {
-		panic(err0.Error())
+func signupUser(db *gorm.DB, userId string, userName string, userPassword string) bool {
+	user := User{UserId: userId, UserName: userName, UserPassword: userPassword}
+	if err := db.Create(&user).Error; err == nil {
+		fmt.Printf("signup成功: %s, %s, %s", userId, userName, userPassword)
+		return true
+	} else {
+		fmt.Println("signup失敗")
+		return false
 	}
-	var users []User
-	err := db.Find(&users).Error
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println(db.HasTable("users"))
-	for _, user := range users {
-		fmt.Println(user.UserId, user.UserName, user.UserPassword)
-	}
-
-	return users
 }
