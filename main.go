@@ -30,10 +30,11 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	fmt.Println("Start main func.")
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	// err := godotenv.Load()
+	godotenv.Load()
+	// if err != nil {
+	// 	log.Fatal("Error loading .env file")
+	// }
 
 	port := os.Getenv("PORT")
 	if port == "" {

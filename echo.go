@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -30,17 +29,17 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 		return c.JSON(http.StatusOK, jsonMap)
 	})
 
-	e.GET("/db", func(c echo.Context) error {
-		var user = findUser(db)
-		jsonMap, _ := json.Marshal(user)
-		return c.JSON(http.StatusOK, jsonMap)
+	e.POST("/user/signup", func(c echo.Context) error {
+		result := signupUser(db, c.FormValue("userId"), c.FormValue("userName"), c.FormValue("userPassword"))
+
+		return c.JSON(http.StatusOK, result)
 	})
 
-	e.GET("/db_add", func(c echo.Context) error {
-		var user = addUser(db)
-		// jsonMap, _ := json.Marshal(user)
-		return c.JSON(http.StatusOK, user)
-	})
+	// e.GET("/db_add", func(c echo.Context) error {
+	// 	var user = addUser(db)
+	// 	// jsonMap, _ := json.Marshal(user)
+	// 	return c.JSON(http.StatusOK, user)
+	// })
 
 	e.GET("/ws", func(c echo.Context) error {
 		serveWs(hub, c.Response(), c.Request())
