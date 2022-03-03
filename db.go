@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-  "sort"
+	"sort"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -109,6 +109,8 @@ func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, present
 	} else {
 		fmt.Printf("create失敗(会議の登録に失敗しました): %s, %s, %s\n", meetingName, startTimeStr, presenters)
 		return -1, "", "", []string{}
+	}
+}
 
 func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.Time, []string) {
 	var user User
