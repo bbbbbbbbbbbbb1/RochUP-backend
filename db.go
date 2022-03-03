@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
@@ -13,6 +15,25 @@ type User struct {
 	UserName     string //`json:"user_name`
 	UserPassword string //`json:"user_password`
 }
+
+type Meeting struct {
+	MeetingId        int    //json:"meeting_id
+	MeetingName      string //json:"meeting_name
+	MeetingStartTime time.Time
+}
+
+type Participant struct {
+	MeetingId        int    //json:"meeting_id
+	UserId           string //json:"user_id
+	SpeakNum         int
+	ParticipantOrder int
+}
+
+type ByParticipantOrder []Participant
+
+func (p ByParticipantOrder) Len() int           { return len(p) }
+func (p ByParticipantOrder) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p ByParticipantOrder) Less(i, j int) bool { return p[i].ParticipantOrder < p[j].ParticipantOrder }
 
 // SQLConnect DB接続
 func sqlConnect() (database *gorm.DB, err error) {
@@ -59,5 +80,60 @@ func loginUser(db *gorm.DB, userId string, userPassword string) bool {
 	} else {
 		fmt.Println("login失敗")
 		return false
+	}
+}
+
+func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.Time, []string) {
+	var user User
+	var meeting Meeting
+	var participant Participant
+	participants := make([]Participant, 0, 10)
+	// err := db.Find(&user).Error
+	user_info := db.First(&user, "user_id = ?", userId)
+	meeting_info := db.First(&meeting, "meeting_id = ?", meetingId)
+	if user_info.Error == nil && meeting_info.Error == nil {
+		participant_info := db.First(&participant, "user_id = ? AND meeting_id = ?", userId, meetingId)
+		if participant_info.Error != nil {
+			participant.MeetingId = meetingId
+			participant.UserId = userId
+			participant.SpeakNum = 0
+			participant.ParticipantOrder = -1
+			if err := db.Create(&participant).Error; err == nil {
+				fmt.Printf("参加者追加成功: %s, %d\n", userId, meetingId)
+			} else {
+				fmt.Println("発表者追加失敗")
+				temp_string := []string{"false"}
+				return false, "false", time.Now(), temp_string
+			}
+		}
+		participants_err := db.Find(&participants, "meeting_id = ? AND participant_order != -1", meetingId).Error
+		if participants_err != nil {
+			fmt.Println("join失敗")
+			temp_string := []string{"false"}
+			return false, "false", time.Now(), temp_string
+		}
+		presenter_names := make([]string, 0, 10)
+
+		sort.Sort(ByParticipantOrder(participants))
+
+		for _, p := range participants {
+			if p.ParticipantOrder != -1 {
+				presenter_id := p.UserId
+				user_err := db.First(&user, "user_id = ?", presenter_id).Error
+				if user_err != nil {
+					fmt.Println("join失敗")
+					temp_string := []string{"false"}
+					return false, "false", time.Now(), temp_string
+				}
+				presenter_names = append(presenter_names, user.UserName)
+			}
+		}
+
+		return true, meeting.MeetingName, meeting.MeetingStartTime, presenter_names
+
+	} else {
+		fmt.Println("join失敗")
+		temp_string := []string{"false"}
+		return false, "false", time.Now(), temp_string
 	}
 }
