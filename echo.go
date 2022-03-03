@@ -43,7 +43,7 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 	e.POST("/meeting/join", func(c echo.Context) error {
 		meetingId, _ := strconv.Atoi(c.FormValue("meetingId"))
 		resultJoinMeeting, meetingName, meetingStartTime, presenterNames := joinMeeting(db, c.FormValue("userId"), meetingId)
-		layout := "2006-01-02 15:04:05"
+		layout := "2006/01/02 15:04:05"
 		meetingStartTimeString := meetingStartTime.Format(layout)
 		test_string := []string{"test"}
 		result := &Result{
