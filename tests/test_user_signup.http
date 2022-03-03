@@ -1,0 +1,8 @@
+POST http://localhost:8080/user/signup HTTP/1.1
+content-type: application/json
+
+{
+    "userId": "fairy26",
+    "userName": "yosei",
+    "userPassword": "12345"
+}
