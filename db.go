@@ -129,6 +129,7 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 			}
 		}
 
+		fmt.Printf("join成功: %s, %d\n", userId, meetingId)
 		return true, meeting.MeetingName, meeting.MeetingStartTime, presenter_names
 
 	} else {
