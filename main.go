@@ -5,6 +5,7 @@
 package main
 
 import (
+	// "fmt"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 )
 
 //　webページに移動
@@ -48,6 +50,7 @@ func main() {
 
 	fmt.Println("Start echo.")
 	e := echo.New()
+	e.Use(middleware.CORS())
 
 	db := connectDB()
 
