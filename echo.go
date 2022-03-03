@@ -3,19 +3,18 @@ package main
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 )
 
 type Result struct {
-	Result      bool      `json:"result"`
-	MeetingName string    `json:"meetingname"`
-	StartTime   time.Time `json:"starttime"`
-	Presenters  []string  `json:"presenters"`
-	DocumentIds []string  `json:"documentids"`
-	Scripts     []string  `json:"scripts"`
+	Result      bool     `json:"result"`
+	MeetingName string   `json:"meetingname"`
+	StartTime   string   `json:"starttime"`
+	Presenters  []string `json:"presenters"`
+	DocumentIds []string `json:"documentids"`
+	Scripts     []string `json:"scripts"`
 }
 
 func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
@@ -44,11 +43,13 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 	e.POST("/meeting/join", func(c echo.Context) error {
 		meetingId, _ := strconv.Atoi(c.FormValue("meetingId"))
 		resultJoinMeeting, meetingName, meetingStartTime, presenterNames := joinMeeting(db, c.FormValue("userId"), meetingId)
+		layout := "2006-01-02 15:04:05"
+		meetingStartTimeString := meetingStartTime.Format(layout)
 		test_string := []string{"test"}
 		result := &Result{
 			Result:      resultJoinMeeting,
 			MeetingName: meetingName,
-			StartTime:   meetingStartTime,
+			StartTime:   meetingStartTimeString,
 			Presenters:  presenterNames,
 			DocumentIds: test_string,
 			Scripts:     test_string,

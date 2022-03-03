@@ -11,22 +11,22 @@ import (
 )
 
 type User struct {
-	UserId       string //`json:"user_id`
-	UserName     string //`json:"user_name`
-	UserPassword string //`json:"user_password`
+	UserId       string `json:"user_id"`
+	UserName     string `json:"user_name"`
+	UserPassword string `json:"user_password"`
 }
 
 type Meeting struct {
-	MeetingId        int    //json:"meeting_id
-	MeetingName      string //json:"meeting_name
-	MeetingStartTime time.Time
+	MeetingId        int       `json:"meeting_id"`
+	MeetingName      string    `json:"meeting_name"`
+	MeetingStartTime time.Time `json:"meetingstarttime"`
 }
 
 type Participant struct {
-	MeetingId        int    //json:"meeting_id
-	UserId           string //json:"user_id
-	SpeakNum         int
-	ParticipantOrder int
+	MeetingId        int    `json:"meeting_id"`
+	UserId           string `json:"user_id"`
+	SpeakNum         int    `json:"speaknum"`
+	ParticipantOrder int    `json:"participantorder"`
 }
 
 type ByParticipantOrder []Participant
@@ -88,7 +88,6 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 	var meeting Meeting
 	var participant Participant
 	participants := make([]Participant, 0, 10)
-	// err := db.Find(&user).Error
 	user_info := db.First(&user, "user_id = ?", userId)
 	meeting_info := db.First(&meeting, "meeting_id = ?", meetingId)
 	if user_info.Error == nil && meeting_info.Error == nil {
