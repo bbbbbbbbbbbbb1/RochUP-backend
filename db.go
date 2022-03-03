@@ -107,7 +107,7 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 		}
 		participants_err := db.Find(&participants, "meeting_id = ? AND participant_order != -1", meetingId).Error
 		if participants_err != nil {
-			fmt.Println("join失敗")
+			fmt.Println("会議非存在")
 			temp_string := []string{"false"}
 			return false, "false", time.Now(), temp_string
 		}
@@ -120,7 +120,7 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 				presenter_id := p.UserId
 				user_err := db.First(&user, "user_id = ?", presenter_id).Error
 				if user_err != nil {
-					fmt.Println("join失敗")
+					fmt.Println("ユーザー非存在")
 					temp_string := []string{"false"}
 					return false, "false", time.Now(), temp_string
 				}
@@ -132,7 +132,7 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 		return true, meeting.MeetingName, meeting.MeetingStartTime, presenter_names
 
 	} else {
-		fmt.Println("join失敗")
+		fmt.Println("ユーザーもしくは会議が非存在")
 		temp_string := []string{"false"}
 		return false, "false", time.Now(), temp_string
 	}

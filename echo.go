@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
@@ -12,7 +11,12 @@ type Result struct {
 	Result bool `json:"result"`
 }
 
-type joinMeetingResult struct {
+type JoinMeetingRequest struct {
+	UserId    string `json:"userId"`
+	MeetingId int    `json:"meetingId"`
+}
+
+type JoinMeetingResult struct {
 	Result      bool     `json:"result"`
 	MeetingName string   `json:"meetingName"`
 	StartTime   string   `json:"startTime"`
@@ -45,21 +49,26 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 	})
 
 	e.POST("/meeting/join", func(c echo.Context) error {
-		meetingId, _ := strconv.Atoi(c.FormValue("meetingId"))
-		resultJoinMeeting, meetingName, meetingStartTime, presenterNames := joinMeeting(db, c.FormValue("userId"), meetingId)
-		layout := "2006/01/02 15:04:05"
-		meetingStartTimeString := meetingStartTime.Format(layout)
-		test_string := []string{"test"}
-		result := &joinMeetingResult{
-			Result:      resultJoinMeeting,
-			MeetingName: meetingName,
-			StartTime:   meetingStartTimeString,
-			Presenters:  presenterNames,
-			DocumentIds: test_string,
-			Scripts:     test_string,
+		request := new(JoinMeetingRequest)
+		err := c.Bind(request)
+		if err == nil {
+			resultJoinMeeting, meetingName, meetingStartTime, presenterNames := joinMeeting(db, request.UserId, request.MeetingId)
+			layout := "2006/01/02 15:04:05"
+			meetingStartTimeString := meetingStartTime.Format(layout)
+			test_string := []string{"test"}
+			result := &JoinMeetingResult{
+				Result:      resultJoinMeeting,
+				MeetingName: meetingName,
+				StartTime:   meetingStartTimeString,
+				Presenters:  presenterNames,
+				DocumentIds: test_string,
+				Scripts:     test_string,
+			}
+			return c.JSON(http.StatusOK, result)
+		} else {
+			return c.JSON(http.StatusBadRequest, &Result{Result: false})
 		}
 
-		return c.JSON(http.StatusOK, result)
 	})
 
 	e.GET("/ws", func(c echo.Context) error {
