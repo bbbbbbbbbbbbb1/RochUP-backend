@@ -87,7 +87,8 @@ func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, present
 	var (
 		user         User
 		layout       = "2006/01/02 15:04:05"
-		startTime, _ = time.Parse(layout, startTimeStr)
+		location, _  = time.LoadLocation("Asia/Tokyo")
+		startTime, _ = time.ParseInLocation(layout, startTimeStr, location)
 		meeting      = Meeting{MeetingName: meetingName, MeetingStartTime: startTime}
 	)
 
