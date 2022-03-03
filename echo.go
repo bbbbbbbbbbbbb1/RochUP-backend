@@ -8,6 +8,10 @@ import (
 	"github.com/labstack/echo"
 )
 
+type Result struct {
+	Result bool `json:"result"`
+}
+
 func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 
 	e.GET("/", func(c echo.Context) error {
@@ -30,15 +34,19 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 	})
 
 	e.POST("/user/signup", func(c echo.Context) error {
-		result := signupUser(db, c.FormValue("userId"), c.FormValue("userName"), c.FormValue("userPassword"))
+		result := &Result{
+			Result: signupUser(db, c.FormValue("userId"), c.FormValue("userName"), c.FormValue("userPassword")),
+		}
 
 		return c.JSON(http.StatusOK, result)
 	})
 
 	e.POST("/user/login", func(c echo.Context) error {
-		var user = loginUser(db, c.FormValue("userId"), c.FormValue("userPassword"))
+		result := &Result{
+			Result: loginUser(db, c.FormValue("userId"), c.FormValue("userPassword")),
+		}
 
-		return c.JSON(http.StatusOK, user)
+		return c.JSON(http.StatusOK, result)
 	})
 
 	e.GET("/ws", func(c echo.Context) error {
