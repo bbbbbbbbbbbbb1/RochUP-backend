@@ -10,10 +10,10 @@ import (
 
 type Result struct {
 	Result      bool     `json:"result"`
-	MeetingName string   `json:"meetingname"`
-	StartTime   string   `json:"starttime"`
+	MeetingName string   `json:"meetingName"`
+	StartTime   string   `json:"startTime"`
 	Presenters  []string `json:"presenters"`
-	DocumentIds []string `json:"documentids"`
+	DocumentIds []string `json:"documentIds"`
 	Scripts     []string `json:"scripts"`
 }
 

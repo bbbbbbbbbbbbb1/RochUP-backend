@@ -11,22 +11,22 @@ import (
 )
 
 type User struct {
-	UserId       string `json:"user_id"`
-	UserName     string `json:"user_name"`
-	UserPassword string `json:"user_password"`
+	UserId       string //`json:"user_id"`
+	UserName     string //`json:"user_name"`
+	UserPassword string //`json:"user_password"`
 }
 
 type Meeting struct {
-	MeetingId        int       `json:"meeting_id"`
-	MeetingName      string    `json:"meeting_name"`
-	MeetingStartTime time.Time `json:"meetingstarttime"`
+	MeetingId        int       //`json:"meeting_id"`
+	MeetingName      string    //`json:"meeting_name"`
+	MeetingStartTime time.Time //`json:"meetingstarttime"`
 }
 
 type Participant struct {
-	MeetingId        int    `json:"meeting_id"`
-	UserId           string `json:"user_id"`
-	SpeakNum         int    `json:"speaknum"`
-	ParticipantOrder int    `json:"participantorder"`
+	MeetingId        int    //`json:"meeting_id"`
+	UserId           string //`json:"user_id"`
+	SpeakNum         int    //`json:"speaknum"`
+	ParticipantOrder int    //`json:"participantorder"`
 }
 
 type ByParticipantOrder []Participant
