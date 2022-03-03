@@ -12,6 +12,17 @@ type Result struct {
 	Result bool `json:"result"`
 }
 
+type UserSignupRequest struct {
+	UserId       string
+	UserName     string
+	UserPassword string
+}
+
+type UserLoginRequest struct {
+	UserId       string
+	UserPassword string
+}
+
 func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 
 	e.GET("/", func(c echo.Context) error {
@@ -34,19 +45,31 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 	})
 
 	e.POST("/user/signup", func(c echo.Context) error {
-		result := &Result{
-			Result: signupUser(db, c.FormValue("userId"), c.FormValue("userName"), c.FormValue("userPassword")),
-		}
+		request := new(UserSignupRequest)
+		err := c.Bind(request)
+		if err == nil {
+			result := &Result{
+				Result: signupUser(db, request.UserId, request.UserName, request.UserPassword),
+			}
 
-		return c.JSON(http.StatusOK, result)
+			return c.JSON(http.StatusOK, result)
+		} else {
+			return c.JSON(http.StatusBadRequest, &Result{Result: false})
+		}
 	})
 
 	e.POST("/user/login", func(c echo.Context) error {
-		result := &Result{
-			Result: loginUser(db, c.FormValue("userId"), c.FormValue("userPassword")),
-		}
+		request := new(UserSignupRequest)
+		err := c.Bind(request)
+		if err == nil {
+			result := &Result{
+				Result: loginUser(db, request.UserId, request.UserPassword),
+			}
 
-		return c.JSON(http.StatusOK, result)
+			return c.JSON(http.StatusOK, result)
+		} else {
+			return c.JSON(http.StatusBadRequest, &Result{Result: false})
+		}
 	})
 
 	e.GET("/ws", func(c echo.Context) error {
