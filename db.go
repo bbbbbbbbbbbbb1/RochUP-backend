@@ -38,18 +38,6 @@ func connectDB() *gorm.DB {
 	return db
 }
 
-func findUser(db *gorm.DB) User {
-	var user User
-	err := db.Find(&user).Error
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println(db.HasTable("users"))
-	fmt.Println(user.UserId, user.UserName, user.UserPassword)
-
-	return user
-}
-
 func signupUser(db *gorm.DB, userId string, userName string, userPassword string) bool {
 	user := User{UserId: userId, UserName: userName, UserPassword: userPassword}
 	if err := db.Create(&user).Error; err == nil {
@@ -57,6 +45,19 @@ func signupUser(db *gorm.DB, userId string, userName string, userPassword string
 		return true
 	} else {
 		fmt.Println("signup失敗")
+		return false
+	}
+}
+
+func loginUser(db *gorm.DB, userId string, userPassword string) bool {
+	var user User
+	// err := db.Find(&user).Error
+	err := db.First(&user, "user_id = ? AND user_password = ?", userId, userPassword).Error
+	if err == nil {
+		fmt.Printf("login成功: %s, %s\n", userId, userPassword)
+		return true
+	} else {
+		fmt.Println("login失敗")
 		return false
 	}
 }
