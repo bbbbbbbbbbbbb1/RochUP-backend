@@ -41,7 +41,7 @@ func connectDB() *gorm.DB {
 func signupUser(db *gorm.DB, userId string, userName string, userPassword string) bool {
 	user := User{UserId: userId, UserName: userName, UserPassword: userPassword}
 	if err := db.Create(&user).Error; err == nil {
-		fmt.Printf("signup成功: %s, %s, %s", userId, userName, userPassword)
+		fmt.Printf("signup成功: %s, %s, %s\n", userId, userName, userPassword)
 		return true
 	} else {
 		fmt.Println("signup失敗")
