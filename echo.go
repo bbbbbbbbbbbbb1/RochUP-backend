@@ -20,6 +20,7 @@ type UserSignupRequest struct {
 type UserLoginRequest struct {
 	UserId       string
 	UserPassword string
+}
 
 type CreateMeetingRequest struct {
 	MeetingName string
