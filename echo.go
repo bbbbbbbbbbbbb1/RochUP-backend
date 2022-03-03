@@ -9,6 +9,10 @@ import (
 )
 
 type Result struct {
+	Result bool `json:"result"`
+}
+
+type joinMeetingResult struct {
 	Result      bool     `json:"result"`
 	MeetingName string   `json:"meetingName"`
 	StartTime   string   `json:"startTime"`
@@ -46,7 +50,7 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 		layout := "2006/01/02 15:04:05"
 		meetingStartTimeString := meetingStartTime.Format(layout)
 		test_string := []string{"test"}
-		result := &Result{
+		result := &joinMeetingResult{
 			Result:      resultJoinMeeting,
 			MeetingName: meetingName,
 			StartTime:   meetingStartTimeString,
