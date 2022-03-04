@@ -47,8 +47,7 @@ type JoinMeetingResult struct {
 	MeetingName      string   `json:"meetingName"`
 	MeetingStartTime string   `json:"meetingStartTime"`
 	Presenters       []string `json:"presenters"`
-	DocumentIds      []string `json:"documentIds"`
-	Scripts          []string `json:"scripts"`
+	DocumentIds      []int    `json:"documentIds"`
 }
 
 func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
@@ -90,17 +89,15 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 		request := new(JoinMeetingRequest)
 		err := c.Bind(request)
 		if err == nil {
-			resultJoinMeeting, meetingName, meetingStartTime, presenterNames := joinMeeting(db, request.UserId, request.MeetingId)
+			resultJoinMeeting, meetingName, meetingStartTime, presenterNames, documentIds := joinMeeting(db, request.UserId, request.MeetingId)
 			layout := "2006/01/02 15:04:05"
 			meetingStartTimeString := meetingStartTime.Format(layout)
-			test_string := []string{"test"}
 			result := &JoinMeetingResult{
 				Result:           resultJoinMeeting,
 				MeetingName:      meetingName,
 				MeetingStartTime: meetingStartTimeString,
 				Presenters:       presenterNames,
-				DocumentIds:      test_string,
-				Scripts:          test_string,
+				DocumentIds:      documentIds,
 			}
 			return c.JSON(http.StatusOK, result)
 		} else {
