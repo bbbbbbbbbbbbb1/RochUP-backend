@@ -29,11 +29,11 @@ type CreateMeetingRequest struct {
 }
 
 type CreateMeetingResult struct {
-	MeetingId        int      `json:"meetinId"`
+	MeetingId        int      `json:"meetingId"`
 	MeetingName      string   `json:"meetingName"`
 	MeetingStartTime string   `json:"meetingStartTime"`
 	Presenters       []string `json:"presenters"`
-	DoncumentIds     []string `json:"documentIds"`
+	DocumentIds      []string `json:"documentIds"`
 	Scripts          []string `json:"scripts"`
 }
 
@@ -124,7 +124,7 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 				MeetingName:      meetingName,
 				MeetingStartTime: meetingStartTime,
 				Presenters:       presenters,
-				DoncumentIds:     []string{},
+				DocumentIds:      []string{},
 				Scripts:          []string{},
 			}
 
