@@ -232,7 +232,7 @@ func createQuestion(db *gorm.DB, question Question) bool {
 	return true
 }
 
-func selectQuestion(db *gorm.DB, meetingId, documentId int, userId string) (bool, string, int) {
+func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) (bool, string, int) {
 	isUserId := true
 	questions := make([]Question, 0, 10)
 	question_user_id := ""
@@ -250,7 +250,7 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, userId string) (bool
 	}
 	if isUserId {
 		participants := make([]Participant, 0, 10)
-		if participants_err := db.Find(&participants, "meeting_id = ? AND user_id != ?", meetingId, userId).Error; participants_err == nil {
+		if participants_err := db.Find(&participants, "meeting_id = ? AND user_id != ?", meetingId, presenterId).Error; participants_err == nil {
 			sort.Sort(ReverseBySpeakNum(participants))
 			rand_max := 3
 			if len(participants) < 3 {
