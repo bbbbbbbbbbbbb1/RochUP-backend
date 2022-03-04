@@ -264,3 +264,30 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 	}
 	return isUserId, question_user_id, question_id
 }
+
+func getParticipantOrder(db *gorm.DB, userId string) int {
+	var participant Participant
+	if err := db.First(&participant, "user_id = ?", userId).Error; err != nil {
+		fmt.Printf("参加者が非存在: %s\n", userId)
+		return -10
+	}
+	return participant.ParticipantOrder
+}
+
+func getUserName(db *gorm.DB, userId string) string {
+	var user User
+	if err := db.First(&user, "user_id = ?", userId).Error; err != nil {
+		fmt.Printf("ユーザーが非存在: %s\n", userId)
+		return ""
+	}
+	return user.UserName
+}
+
+func getQuestionBody(db *gorm.DB, questionId int) string {
+	var question Question
+	if err := db.First(&question, "question_id = ?", questionId).Error; err != nil {
+		fmt.Printf("質問が非存在: %d\n", questionId)
+		return ""
+	}
+	return question.QuestionBody
+}
