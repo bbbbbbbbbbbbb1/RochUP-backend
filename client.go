@@ -77,16 +77,6 @@ type Message struct {
 // 	QuestionTime string `json:questionTime`
 // }
 
-type Question struct {
-	QuestionId   int `gorm:"AUTO_INCREMENT"`
-	UserId       string
-	QuestionBody string
-	DocumentId   int
-	DocumentPage int
-	VoteNum      int
-	QuestionTime time.Time
-}
-
 type QuestionResult struct {
 	MessageType  string `json:"messageType"`
 	MeetingId    int    `json:"meetingId"`
@@ -163,11 +153,8 @@ func (c *Client) readPump() {
 				VoteNum:      0,
 				QuestionTime: questionTime,
 			}
-			if err := db.Create(&question).Error; err != nil {
-				fmt.Printf("create失敗(質問の登録に失敗しました): %s, %d, %s\n", userId, documentId, questionTimeStr)
-				return
-			}
-			fmt.Printf("create成功(質問の登録に成功しました): %s, %d, %s\n", userId, documentId, questionTimeStr)
+
+			createQuestion(db, question)
 
 			messagestruct = QuestionResult{
 				MessageType:  message_type,

@@ -29,6 +29,16 @@ type Participant struct {
 	ParticipantOrder int    //`json:"participantorder"`
 }
 
+type Question struct {
+	QuestionId   int `gorm:"AUTO_INCREMENT"`
+	UserId       string
+	QuestionBody string
+	DocumentId   int
+	DocumentPage int
+	VoteNum      int
+	QuestionTime time.Time
+}
+
 type ByParticipantOrder []Participant
 
 func (p ByParticipantOrder) Len() int           { return len(p) }
@@ -166,4 +176,12 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 		temp_string := []string{"false"}
 		return false, "false", time.Now(), temp_string
 	}
+}
+
+func createQuestion(db *gorm.DB, question Question) {
+	if err := db.Create(&question).Error; err != nil {
+		fmt.Printf("create失敗(質問の登録に失敗しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
+		return
+	}
+	fmt.Printf("create成功(質問の登録に成功しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
 }
