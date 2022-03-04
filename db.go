@@ -30,12 +30,11 @@ type Participant struct {
 }
 
 type Document struct {
-	DocumentId       int    `gorm:"AUTO_INCREMENT"`
-	UserId           string //`json:"user_id"`
-	MeetingId        int    //`json:"meeting_id"`
-	DocumentUrl      string //`json:"document_url"`
-	Script           string //`json:"script"`
-	MeetingStartTime time.Time
+	DocumentId  int `gorm:"AUTO_INCREMENT"`
+	UserId      string
+	MeetingId   int
+	DocumentUrl *string
+	script      *string
 }
 
 type ByParticipantOrder []Participant
@@ -92,9 +91,10 @@ func loginUser(db *gorm.DB, userId string, userPassword string) bool {
 	}
 }
 
-func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, presenters []string) (int, string, string, []string) {
+func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, presenters []string) (int, string, string, []string, []int) {
 	var (
 		user         User
+		documentIds  []int
 		layout       = "2006/01/02 15:04:05"
 		location, _  = time.LoadLocation("Asia/Tokyo")
 		startTime, _ = time.ParseInLocation(layout, startTimeStr, location)
@@ -105,20 +105,28 @@ func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, present
 		for i, presenter := range presenters {
 			if err := db.First(&user, "user_id = ?", presenter).Error; err == nil {
 				participant := Participant{MeetingId: meeting.MeetingId, UserId: user.UserId, SpeakNum: 0, ParticipantOrder: i}
-				if err := db.Create(&participant).Error; err != nil { // TODO: transaction
+				if err := db.Create(&participant).Error; err == nil {
+					document := Document{UserId: user.UserId, MeetingId: meeting.MeetingId}
+					if err := db.Create(&document).Error; err == nil {
+						documentIds = append(documentIds, document.DocumentId)
+					} else {
+						fmt.Printf("create失敗(空の資料作成に失敗しました)\n")
+						return -1, "", "", []string{}, []int{}
+					}
+				} else { // TODO: transaction
 					fmt.Printf("create失敗(発表者%sの登録に失敗しました): %s, %s, %s\n", presenter, meetingName, startTimeStr, presenters)
-					return -1, "", "", []string{}
+					return -1, "", "", []string{}, []int{}
 				}
 			} else {
 				fmt.Printf("create失敗(発表者%sが見つかりません): %s, %s, %s\n", presenter, meetingName, startTimeStr, presenters)
-				return -1, "", "", []string{}
+				return -1, "", "", []string{}, []int{}
 			}
 		}
 		fmt.Printf("create成功: %s, %s, %s\n", meetingName, startTimeStr, presenters)
-		return meeting.MeetingId, meetingName, startTimeStr, presenters
+		return meeting.MeetingId, meetingName, startTimeStr, presenters, documentIds
 	} else {
 		fmt.Printf("create失敗(会議の登録に失敗しました): %s, %s, %s\n", meetingName, startTimeStr, presenters)
-		return -1, "", "", []string{}
+		return -1, "", "", []string{}, []int{}
 	}
 }
 
