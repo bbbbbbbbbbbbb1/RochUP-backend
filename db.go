@@ -178,10 +178,11 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 	}
 }
 
-func createQuestion(db *gorm.DB, question Question) {
+func createQuestion(db *gorm.DB, question Question) bool {
 	if err := db.Create(&question).Error; err != nil {
 		fmt.Printf("create失敗(質問の登録に失敗しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
-		return
+		return false
 	}
 	fmt.Printf("create成功(質問の登録に成功しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
+	return true
 }

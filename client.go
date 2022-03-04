@@ -154,7 +154,9 @@ func (c *Client) readPump() {
 				QuestionTime: questionTime,
 			}
 
-			createQuestion(db, question)
+			if !createQuestion(db, question) {
+				return
+			}
 
 			messagestruct = QuestionResult{
 				MessageType:  message_type,
