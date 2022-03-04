@@ -63,8 +63,27 @@ type Client struct {
 }
 
 type Message struct {
-	Messagetype string `json:"messagetype"`
+	MessageType string `json:"messageType"`
 	Message     string `json:"message"`
+}
+
+// type QuestionRequest struct {
+// 	MessageType  string `json:"messageType"`
+// 	UserId       string `json:"userId"`
+// 	MeetingId    int    `json:"meetingId"`
+// 	QuestionBody string `json:"questionBody"`
+// 	DocumentId   int    `json:"documentId`
+// 	DocumentPage int    `json:"documentPage`
+// 	QuestionTime string `json:questionTime`
+// }
+
+type QuestionResult struct {
+	MessageType  string `json:"messageType"`
+	MeetingId    int    `json:"meetingId"`
+	QuestionBody string `json:"questionBody"`
+	DocumentId   int    `json:"documentId`
+	DocumentPage int    `json:"documentPage`
+	QuestionTime string `json:questionTime`
 }
 
 func loadJson(byteArray []byte) (interface{}, error) {
@@ -100,20 +119,39 @@ func (c *Client) readPump() {
 		// websocketで受け取ったデータの処理
 		jsonObj, jsonerr := loadJson(message)
 		if jsonerr != nil {
+			fmt.Println("loadJsonでエラーが発生しました")
 			continue
 		}
 		fmt.Printf(string(message) + "\n")
-		message_type := jsonObj.(map[string]interface{})["messagetype"].(string)
+		message_type := jsonObj.(map[string]interface{})["messageType"].(string)
 
 		var messagestruct interface{}
 
-		if message_type == "message" {
+		switch message_type {
+		case "message":
 			message_jsonobj := jsonObj.(map[string]interface{})["message"].(string)
-			messagestruct = Message{Messagetype: "message", Message: message_jsonobj}
-		} else {
+			messagestruct = Message{MessageType: "message", Message: message_jsonobj}
+		case "question":
+			// userId := jsonObj.(map[string]interface{})["userId"].(string)
+			meetingId := int(jsonObj.(map[string]interface{})["meetingId"].(float64))
+			questionBody := jsonObj.(map[string]interface{})["questionBody"].(string)
+			documentId := int(jsonObj.(map[string]interface{})["documentId"].(float64))
+			documentPage := int(jsonObj.(map[string]interface{})["documentPage"].(float64))
+			questionTime := jsonObj.(map[string]interface{})["questionTime"].(string)
+
+			// 処理
+
+			messagestruct = QuestionResult{
+				MessageType:  message_type,
+				MeetingId:    meetingId,
+				QuestionBody: questionBody,
+				DocumentId:   documentId,
+				DocumentPage: documentPage,
+				QuestionTime: questionTime,
+			}
+		default:
 			return
 		}
-
 		messagejson, _ := json.Marshal(messagestruct)
 
 		// 自分のメッセージをhubのbroadcastチャネルに送り込む
