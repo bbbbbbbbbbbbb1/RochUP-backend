@@ -232,12 +232,12 @@ func createQuestion(db *gorm.DB, question Question) bool {
 	return true
 }
 
-func selectQuestion(db *gorm.DB, meetingId int) (bool, string, int) {
+func selectQuestion(db *gorm.DB, meetingId, documentId int, userId string) (bool, string, int) {
 	isUserId := true
 	questions := make([]Question, 0, 10)
-	user_id := ""
+	question_user_id := ""
 	question_id := -1
-	if questions_err := db.Find(&questions, "meeting_id = ?", meetingId).Error; questions_err == nil {
+	if questions_err := db.Find(&questions, "meeting_id = ? AND document_id = ?", meetingId, documentId).Error; questions_err == nil {
 		sort.Sort(ByQuestionTime(questions))
 		for _, q := range questions {
 			if !q.QuestionOk {
@@ -250,17 +250,17 @@ func selectQuestion(db *gorm.DB, meetingId int) (bool, string, int) {
 	}
 	if isUserId {
 		participants := make([]Participant, 0, 10)
-		if participants_err := db.Find(&participants, "meeting_id = ?", meetingId).Error; participants_err == nil {
+		if participants_err := db.Find(&participants, "meeting_id = ? AND user_id != ?", meetingId, userId).Error; participants_err == nil {
 			sort.Sort(ReverseBySpeakNum(participants))
 			rand_max := 3
 			if len(participants) < 3 {
 				rand_max = len(participants)
 			}
-			user_id = participants[rand.Intn(rand_max)].UserId
+			question_user_id = participants[rand.Intn(rand_max)].UserId
 		} else {
 			fmt.Printf("参加者が非存在: %d\n", meetingId)
 			return false, "", -1
 		}
 	}
-	return isUserId, user_id, question_id
+	return isUserId, question_user_id, question_id
 }
