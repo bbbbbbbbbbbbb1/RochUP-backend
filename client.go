@@ -77,13 +77,23 @@ type Message struct {
 // 	QuestionTime string `json:questionTime`
 // }
 
+type Question struct {
+	QuestionId   int `gorm:"AUTO_INCREMENT"`
+	UserId       string
+	QuestionBody string
+	DocumentId   int
+	DocumentPage int
+	VoteNum      int
+	QuestionTime time.Time
+}
+
 type QuestionResult struct {
 	MessageType  string `json:"messageType"`
 	MeetingId    int    `json:"meetingId"`
 	QuestionBody string `json:"questionBody"`
-	DocumentId   int    `json:"documentId`
-	DocumentPage int    `json:"documentPage`
-	QuestionTime string `json:questionTime`
+	DocumentId   int    `json:"documentId"`
+	DocumentPage int    `json:"documentPage"`
+	QuestionTime string `json:"questionTime"`
 }
 
 func loadJson(byteArray []byte) (interface{}, error) {
@@ -132,14 +142,32 @@ func (c *Client) readPump() {
 			message_jsonobj := jsonObj.(map[string]interface{})["message"].(string)
 			messagestruct = Message{MessageType: "message", Message: message_jsonobj}
 		case "question":
-			// userId := jsonObj.(map[string]interface{})["userId"].(string)
+			var (
+				layout      = "2006/01/02 15:04:05"
+				location, _ = time.LoadLocation("Asia/Tokyo")
+			)
+
+			userId := jsonObj.(map[string]interface{})["userId"].(string)
 			meetingId := int(jsonObj.(map[string]interface{})["meetingId"].(float64))
 			questionBody := jsonObj.(map[string]interface{})["questionBody"].(string)
 			documentId := int(jsonObj.(map[string]interface{})["documentId"].(float64))
 			documentPage := int(jsonObj.(map[string]interface{})["documentPage"].(float64))
-			questionTime := jsonObj.(map[string]interface{})["questionTime"].(string)
+			questionTimeStr := jsonObj.(map[string]interface{})["questionTime"].(string)
 
-			// 処理
+			questionTime, _ := time.ParseInLocation(layout, questionTimeStr, location)
+			question := Question{
+				UserId:       userId,
+				QuestionBody: questionBody,
+				DocumentId:   documentId,
+				DocumentPage: documentPage,
+				VoteNum:      0,
+				QuestionTime: questionTime,
+			}
+			if err := db.Create(&question).Error; err != nil {
+				fmt.Printf("create失敗(質問の登録に失敗しました): %s, %d, %s\n", userId, documentId, questionTimeStr)
+				return
+			}
+			fmt.Printf("create成功(質問の登録に成功しました): %s, %d, %s\n", userId, documentId, questionTimeStr)
 
 			messagestruct = QuestionResult{
 				MessageType:  message_type,
@@ -147,7 +175,7 @@ func (c *Client) readPump() {
 				QuestionBody: questionBody,
 				DocumentId:   documentId,
 				DocumentPage: documentPage,
-				QuestionTime: questionTime,
+				QuestionTime: questionTimeStr,
 			}
 		default:
 			return
