@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"sort"
 	"time"
@@ -37,6 +38,7 @@ type Question struct {
 	DocumentPage int
 	VoteNum      int
 	QuestionTime time.Time
+	QuestionOk   bool
 }
 
 type Document struct {
@@ -52,6 +54,18 @@ type ByParticipantOrder []Participant
 func (p ByParticipantOrder) Len() int           { return len(p) }
 func (p ByParticipantOrder) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p ByParticipantOrder) Less(i, j int) bool { return p[i].ParticipantOrder < p[j].ParticipantOrder }
+
+type ByQuestionTime []Question
+
+func (q ByQuestionTime) Len() int           { return len(q) }
+func (q ByQuestionTime) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q ByQuestionTime) Less(i, j int) bool { return q[i].QuestionTime.Before(q[j].QuestionTime) }
+
+type ReverseBySpeakNum []Participant
+
+func (p ReverseBySpeakNum) Len() int           { return len(p) }
+func (p ReverseBySpeakNum) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p ReverseBySpeakNum) Less(i, j int) bool { return p[i].SpeakNum > p[j].SpeakNum }
 
 // SQLConnect DB接続
 func sqlConnect() (database *gorm.DB, err error) {
@@ -216,4 +230,37 @@ func createQuestion(db *gorm.DB, question Question) bool {
 	}
 	fmt.Printf("create成功(質問の登録に成功しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
 	return true
+}
+
+func selectQuestion(db *gorm.DB, meetingId int) (bool, string, int) {
+	isUserId := true
+	questions := make([]Question, 0, 10)
+	user_id := ""
+	question_id := -1
+	if questions_err := db.Find(&questions, "meeting_id = ?", meetingId).Error; questions_err == nil {
+		sort.Sort(ByQuestionTime(questions))
+		for _, q := range questions {
+			if !q.QuestionOk {
+				q.QuestionOk = true
+				question_id = q.QuestionId
+				isUserId = false
+				break
+			}
+		}
+	}
+	if isUserId {
+		participants := make([]Participant, 0, 10)
+		if participants_err := db.Find(&participants, "meeting_id = ?", meetingId).Error; participants_err == nil {
+			sort.Sort(ReverseBySpeakNum(participants))
+			rand_max := 3
+			if len(participants) < 3 {
+				rand_max = len(participants)
+			}
+			user_id = participants[rand.Intn(rand_max)].UserId
+		} else {
+			fmt.Printf("参加者が非存在: %d\n", meetingId)
+			return false, "", -1
+		}
+	}
+	return isUserId, user_id, question_id
 }
