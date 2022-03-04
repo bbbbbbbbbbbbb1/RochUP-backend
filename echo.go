@@ -12,29 +12,29 @@ type Result struct {
 }
 
 type UserSignupRequest struct {
-	UserId       string
-	UserName     string
-	UserPassword string
+	UserId       string `json:"userId"`
+	UserName     string `json:"userName"`
+	UserPassword string `json:"userPassword"`
 }
 
 type UserLoginRequest struct {
-	UserId       string
-	UserPassword string
+	UserId       string `json:"userId"`
+	UserPassword string `json:"userPassword"`
 }
 
 type CreateMeetingRequest struct {
-	MeetingName string
-	StartTime   string
-	Presenters  []string
+	MeetingName      string   `json:"meetingName"`
+	MeetingStartTime string   `json:"meetingStartTime"`
+	Presenters       []string `json:"presenters"`
 }
 
 type CreateMeetingResult struct {
-	MeetingId        int
-	MeetingName      string
-	MeetingStartTime string
-	Presenters       []string
-	DoncumentIds     []string
-	Scripts          []string
+	MeetingId        int      `json:"meetinId"`
+	MeetingName      string   `json:"meetingName"`
+	MeetingStartTime string   `json:"meetingStartTime"`
+	Presenters       []string `json:"presenters"`
+	DoncumentIds     []string `json:"documentIds"`
+	Scripts          []string `json:"scripts"`
 }
 
 type JoinMeetingRequest struct {
@@ -43,12 +43,12 @@ type JoinMeetingRequest struct {
 }
 
 type JoinMeetingResult struct {
-	Result      bool     `json:"result"`
-	MeetingName string   `json:"meetingName"`
-	StartTime   string   `json:"startTime"`
-	Presenters  []string `json:"presenters"`
-	DocumentIds []string `json:"documentIds"`
-	Scripts     []string `json:"scripts"`
+	Result           bool     `json:"result"`
+	MeetingName      string   `json:"meetingName"`
+	MeetingStartTime string   `json:"meetingStartTime"`
+	Presenters       []string `json:"presenters"`
+	DocumentIds      []string `json:"documentIds"`
+	Scripts          []string `json:"scripts"`
 }
 
 func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
@@ -95,12 +95,12 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 			meetingStartTimeString := meetingStartTime.Format(layout)
 			test_string := []string{"test"}
 			result := &JoinMeetingResult{
-				Result:      resultJoinMeeting,
-				MeetingName: meetingName,
-				StartTime:   meetingStartTimeString,
-				Presenters:  presenterNames,
-				DocumentIds: test_string,
-				Scripts:     test_string,
+				Result:           resultJoinMeeting,
+				MeetingName:      meetingName,
+				MeetingStartTime: meetingStartTimeString,
+				Presenters:       presenterNames,
+				DocumentIds:      test_string,
+				Scripts:          test_string,
 			}
 			return c.JSON(http.StatusOK, result)
 		} else {
@@ -118,8 +118,8 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 		request := new(CreateMeetingRequest)
 		err := c.Bind(request)
 		if err == nil {
-			meetingId, meetingName, meetingStartTime, presenters := createMeeting(db, request.MeetingName, request.StartTime, request.Presenters)
-			createMeetingResult := &CreateMeetingResult{
+			meetingId, meetingName, meetingStartTime, presenters := createMeeting(db, request.MeetingName, request.MeetingStartTime, request.Presenters)
+			result := &CreateMeetingResult{
 				MeetingId:        meetingId,
 				MeetingName:      meetingName,
 				MeetingStartTime: meetingStartTime,
@@ -128,7 +128,7 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 				Scripts:          []string{},
 			}
 
-			return c.JSON(http.StatusOK, createMeetingResult)
+			return c.JSON(http.StatusOK, result)
 		} else {
 			return c.JSON(http.StatusBadRequest, &Result{Result: false})
 		}
