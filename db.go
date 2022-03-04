@@ -130,10 +130,11 @@ func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, present
 	}
 }
 
-func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.Time, []string) {
+func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.Time, []string, []int) {
 	var user User
 	var meeting Meeting
 	var participant Participant
+	var document Document
 	participants := make([]Participant, 0, 10)
 	user_info := db.First(&user, "user_id = ?", userId)
 	meeting_info := db.First(&meeting, "meeting_id = ?", meetingId)
@@ -147,18 +148,21 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 			if err := db.Create(&participant).Error; err == nil {
 				fmt.Printf("参加者追加成功: %s, %d\n", userId, meetingId)
 			} else {
-				fmt.Println("発表者追加失敗")
+				fmt.Println("参加者追加失敗")
 				temp_string := []string{"false"}
-				return false, "false", time.Now(), temp_string
+				temp_int := []int{-1}
+				return false, "false", time.Now(), temp_string, temp_int
 			}
 		}
 		participants_err := db.Find(&participants, "meeting_id = ? AND participant_order != -1", meetingId).Error
 		if participants_err != nil {
 			fmt.Println("会議非存在")
 			temp_string := []string{"false"}
-			return false, "false", time.Now(), temp_string
+			temp_int := []int{-1}
+			return false, "false", time.Now(), temp_string, temp_int
 		}
 		presenter_names := make([]string, 0, 10)
+		document_ids := make([]int, 0, 10)
 
 		sort.Sort(ByParticipantOrder(participants))
 
@@ -169,18 +173,28 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 				if user_err != nil {
 					fmt.Println("ユーザー非存在")
 					temp_string := []string{"false"}
-					return false, "false", time.Now(), temp_string
+					temp_int := []int{-1}
+					return false, "false", time.Now(), temp_string, temp_int
+				}
+				document_err := db.First(&document, "user_id = ? AND meeting_id = ?", p.UserId, p.MeetingId).Error
+				if document_err != nil {
+					fmt.Println("資料非存在")
+					temp_string := []string{"false"}
+					temp_int := []int{-1}
+					return false, "false", time.Now(), temp_string, temp_int
 				}
 				presenter_names = append(presenter_names, user.UserName)
+				document_ids = append(document_ids, document.DocumentId)
 			}
 		}
 
 		fmt.Printf("join成功: %s, %d\n", userId, meetingId)
-		return true, meeting.MeetingName, meeting.MeetingStartTime, presenter_names
+		return true, meeting.MeetingName, meeting.MeetingStartTime, presenter_names, document_ids
 
 	} else {
 		fmt.Println("ユーザーもしくは会議が非存在")
 		temp_string := []string{"false"}
-		return false, "false", time.Now(), temp_string
+		temp_int := []int{-1}
+		return false, "false", time.Now(), temp_string, temp_int
 	}
 }
