@@ -265,9 +265,9 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 	return isUserId, question_user_id, question_id
 }
 
-func getParticipantOrder(db *gorm.DB, userId string) int {
+func getParticipantOrder(db *gorm.DB, meetingId int, userId string) int {
 	var participant Participant
-	if err := db.First(&participant, "user_id = ?", userId).Error; err != nil {
+	if err := db.First(&participant, "meeting_id = ? AND user_id = ?", meetingId, userId).Error; err != nil {
 		fmt.Printf("参加者が非存在: %s\n", userId)
 		return -10
 	}
