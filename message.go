@@ -21,30 +21,22 @@ func presenOrQuestionEnd(db *gorm.DB, meetingId int, presenterId string, documen
 	} else {
 		endMessage = questionEndMessage
 	}
-	// isUserId, questionUserId, questionId = selectQuestion(db, meetingId, documentId, presenterId)
-
-	isUserId := false // Dummy
-	// presenUserName := "presenter1" // Dummy
-	// presenUserName := getUserName(db, questionUserId)
+	isUserId, questionUserId, questionId := selectQuestion(db, meetingId, documentId, presenterId)
 
 	if isUserId { // 質問者を当てる
-		questionUserName := "questioner1" // Dummy
-		// questionUserName := getUserName(db, questionUserId)
+		questionUserName := getUserName(db, questionUserId)
 
 		return fmt.Sprintf(endMessage+questionPersonMessage, questionUserName)
 	} else { // 来ている質問を使う
-		questionBody := "This is question." // Dummy
-		// questionBody := getQuestionBody(db, questionId)
+		questionBody := getQuestionBody(db, questionId)
 
 		return fmt.Sprintf(endMessage+questionBodyAskMessage, questionBody)
 	}
 }
 
 func personEnd(presenUserId string, nextUserId string) string {
-	presenUserName := "test2"
-	nextUserName := "test3"
-	// presenUserName := getUserName(db, presenUserId)
-	// nextUserName := getUserName(db, nextUserId)
+	presenUserName := getUserName(db, presenUserId)
+	nextUserName := getUserName(db, nextUserId)
 
 	return fmt.Sprintf(personEndMessage, presenUserName, nextUserName)
 }

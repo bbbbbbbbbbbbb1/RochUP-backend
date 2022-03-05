@@ -237,7 +237,7 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 	questions := make([]Question, 0, 10)
 	question_user_id := ""
 	question_id := -1
-	if questions_err := db.Find(&questions, "meeting_id = ? AND document_id = ?", meetingId, documentId).Error; questions_err == nil {
+	if questions_err := db.Find(&questions, "document_id = ?", documentId).Error; questions_err == nil {
 		sort.Sort(ByQuestionTime(questions))
 		for _, q := range questions {
 			if !q.QuestionOk {
@@ -272,6 +272,20 @@ func getParticipantOrder(db *gorm.DB, meetingId int, userId string) int {
 		return -10
 	}
 	return participant.ParticipantOrder
+}
+
+func getNextPresenterId(db *gorm.DB, meetingId int, nowPresenterId string) string {
+	var participant Participant
+	if err := db.First(&participant, "meeting_id = ? AND user_id = ?", meetingId, nowPresenterId).Error; err != nil {
+		fmt.Printf("参加者が非存在: %s\n", nowPresenterId)
+		return ""
+	}
+	nextOrder := participant.ParticipantOrder + 1
+	if err := db.First(&participant, "meeting_id = ? AND participant_order = ?", meetingId, nextOrder).Error; err != nil {
+		fmt.Printf("次の発表者が非存在: %d\n", nextOrder)
+		return ""
+	}
+	return participant.UserId
 }
 
 func getUserName(db *gorm.DB, userId string) string {

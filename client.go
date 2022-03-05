@@ -185,10 +185,10 @@ func (c *Client) readPump() {
 			var moderatorMsg string
 			// 規定の質問数に達した場合
 			if questionCount[meetingId] >= maxQuestionNum {
-				nextUserId := "test04"
-				// nextUserId := getParticipantOrder(db, meetingId, presenterId)
+				nextUserId := getNextPresenterId(db, meetingId, presenterId)
 
 				moderatorMsg = personEnd(presenterId, nextUserId)
+				questionCount[meetingId] = 0
 			} else {
 				if finishType == "present" {
 					moderatorMsg = presenOrQuestionEnd(db, meetingId, presenterId, documentId, true)
