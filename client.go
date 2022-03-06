@@ -79,6 +79,7 @@ type Message struct {
 
 type QuestionResult struct {
 	MessageType  string `json:"messageType"`
+	QuestionId   int    `json:"questionId"`
 	MeetingId    int    `json:"meetingId"`
 	QuestionBody string `json:"questionBody"`
 	DocumentId   int    `json:"documentId"`
@@ -164,12 +165,15 @@ func (c *Client) readPump() {
 				QuestionTime: questionTime,
 			}
 
-			if !createQuestion(db, question) {
+			isCreateQuestionOK, questionId := createQuestion(db, question)
+
+			if !isCreateQuestionOK {
 				return
 			}
 
 			messagestruct = QuestionResult{
 				MessageType:  message_type,
+				QuestionId:   questionId,
 				MeetingId:    meetingId,
 				QuestionBody: questionBody,
 				DocumentId:   documentId,

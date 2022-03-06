@@ -223,13 +223,13 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 	}
 }
 
-func createQuestion(db *gorm.DB, question Question) bool {
+func createQuestion(db *gorm.DB, question Question) (bool, int) {
 	if err := db.Create(&question).Error; err != nil {
 		fmt.Printf("create失敗(質問の登録に失敗しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
-		return false
+		return false, -1
 	}
 	fmt.Printf("create成功(質問の登録に成功しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
-	return true
+	return true, question.QuestionId
 }
 
 func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) (bool, string, int) {
@@ -241,7 +241,10 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 		sort.Sort(ByQuestionTime(questions))
 		for _, q := range questions {
 			if !q.QuestionOk {
-				q.QuestionOk = true
+				if q_err := db.Model(&q).Update("question_ok", true).Error; q_err != nil {
+					fmt.Printf("update失敗(質問の回答状況の更新に失敗しました): %d\n", q.QuestionId)
+					return false, "", -1
+				}
 				question_id = q.QuestionId
 				isUserId = false
 				break
