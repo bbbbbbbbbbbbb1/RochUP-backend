@@ -10,6 +10,10 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+var (
+	notAnnounced = map[int]bool{}
+)
+
 type User struct {
 	UserId       string //`json:"user_id"`
 	UserName     string //`json:"user_name"`
@@ -132,6 +136,7 @@ func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, present
 				return -1, "", "", []string{}, []int{}
 			}
 		}
+		notAnnounced[meeting.MeetingId] = true
 		fmt.Printf("create成功: %s, %s, %s\n", meetingName, startTimeStr, presenters)
 		return meeting.MeetingId, meetingName, startTimeStr, presenters, documentIds
 	} else {
@@ -216,4 +221,30 @@ func createQuestion(db *gorm.DB, question Question) bool {
 	}
 	fmt.Printf("create成功(質問の登録に成功しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
 	return true
+}
+
+func getInitiatedMeetingId(db *gorm.DB) int {
+
+	var (
+		meetings    []Meeting
+		layout      = "2006-01-02 15:04"
+		location, _ = time.LoadLocation("Asia/Tokyo")
+		now         = time.Now().In(location)
+	)
+	db.Where("meeting_start_time < ?", now).Find(&meetings)
+
+	sort.Slice(meetings, func(i, j int) bool {
+		return meetings[i].MeetingStartTime.After(meetings[j].MeetingStartTime)
+	})
+
+	for _, meeting := range meetings {
+		// TODO: meeting.MeetingIdのkeyがない場合を検討
+		if meeting.MeetingStartTime.Format(layout) == now.Format(layout) && notAnnounced[meeting.MeetingId] {
+			fmt.Printf("meeting(%v)を開始します\n", meeting)
+			notAnnounced[meeting.MeetingId] = false
+			return meeting.MeetingId
+		}
+	}
+
+	return -1
 }

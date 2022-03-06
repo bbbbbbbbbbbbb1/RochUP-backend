@@ -20,7 +20,7 @@ const (
 	writeWait = 10 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
+	pongWait = 30 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
@@ -84,6 +84,12 @@ type QuestionResult struct {
 	DocumentId   int    `json:"documentId"`
 	DocumentPage int    `json:"documentPage"`
 	QuestionTime string `json:"questionTime"`
+}
+
+type ModeratorMsg struct {
+	Messagetype      string `json:"messagetype"`
+	MeetingId        int    `json:"meetingid"`
+	ModeratorMsgBody string `json:"moderatorMsgBody"`
 }
 
 func loadJson(byteArray []byte) (interface{}, error) {
@@ -189,6 +195,18 @@ func (c *Client) writePump() {
 		c.conn.Close()
 	}()
 	for {
+		// TODO: この位置で大丈夫か
+		meetingId := getInitiatedMeetingId(db)
+		if meetingId > 0 {
+			startMsg := ModeratorMsg{
+				Messagetype:      "moderator_msg",
+				MeetingId:        meetingId,
+				ModeratorMsgBody: "Let's enjoy talking!",
+			}
+			startMsgJson, _ := json.Marshal(startMsg)
+			c.hub.broadcast <- startMsgJson
+		}
+
 		select {
 		case message, ok := <-c.send:
 			// タイムアウト時間の設定
