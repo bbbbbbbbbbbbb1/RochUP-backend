@@ -219,27 +219,8 @@ func createQuestion(db *gorm.DB, question Question) bool {
 	return true
 }
 
-func getInitiatedMeetingId(db *gorm.DB) int {
-
-	var (
-		meetings    []Meeting
-		layout      = "2006-01-02 15:04"
-		location, _ = time.LoadLocation("Asia/Tokyo")
-		now         = time.Now().In(location)
-	)
-	db.Where("meeting_start_time < ? AND meeting_done = ?", now, false).Find(&meetings)
-
-	sort.Slice(meetings, func(i, j int) bool {
-		return meetings[i].MeetingStartTime.After(meetings[j].MeetingStartTime)
-	})
-
-	for _, meeting := range meetings {
-		if meeting.MeetingStartTime.Format(layout) == now.Format(layout) && !meeting.MeetingDone {
-			fmt.Printf("meeting(%v)開始\n", meeting)
-			db.Model(&meeting).Where("meeting_id = ?", meeting.MeetingId).Update("meeting_done", true)
-			return meeting.MeetingId
-		}
-	}
-
-	return -1
+func setMeetingDone(db *gorm.DB, meetingId int) {
+	var meeting Meeting
+	db.First(&meeting, "meeting_id = ?", meetingId)
+	db.Model(&meeting).Where("meeting_id = ?", meetingId).Update("meeting_done", true)
 }

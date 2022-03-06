@@ -105,6 +105,9 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 				Presenters:       presenterNames,
 				DocumentIds:      documentIds,
 			}
+			if result.Result {
+				go hub.sendStartMeetingMessage(request.MeetingId, meetingStartTime)
+			}
 			return c.JSON(http.StatusOK, result)
 		} else {
 			return c.JSON(http.StatusBadRequest, &Result{Result: false})

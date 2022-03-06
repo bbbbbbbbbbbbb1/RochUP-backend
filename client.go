@@ -30,8 +30,9 @@ const (
 )
 
 var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
+	newline    = []byte{'\n'}
+	space      = []byte{' '}
+	isReserved = map[int]bool{} // 会議開始の司会メッセージを通知予約したか
 )
 
 var (
@@ -183,6 +184,24 @@ func (c *Client) readPump() {
 	}
 }
 
+func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
+	if !isReserved[meetingId] {
+		isReserved[meetingId] = true
+		fmt.Println("開始通知を予約")
+		time.Sleep(time.Until(startTime.In(time.Local)))
+		message := ModeratorMsg{
+			Messagetype:      "moderator_msg",
+			MeetingId:        meetingId,
+			ModeratorMsgBody: "Let's enjoy talking!",
+		}
+		messagejson, _ := json.Marshal(message)
+		hub.broadcast <- messagejson
+		setMeetingDone(db, meetingId)
+	} else {
+		fmt.Println("開始通知は予約済") // debug
+	}
+}
+
 // writePump pumps messages from the hub to the websocket connection.
 //
 // A goroutine running writePump is started for each connection. The
@@ -195,23 +214,6 @@ func (c *Client) writePump() {
 		c.conn.Close()
 	}()
 	for {
-		for {
-			time.Sleep(1 * time.Millisecond)
-			if time.Now().Format("05") == "00" {
-				break
-			}
-		}
-		// TODO: この位置で大丈夫か
-		if meetingId := getInitiatedMeetingId(db); meetingId > 0 {
-			startMsg := ModeratorMsg{
-				Messagetype:      "moderator_msg",
-				MeetingId:        meetingId,
-				ModeratorMsgBody: "Let's enjoy talking!",
-			}
-			startMsgJson, _ := json.Marshal(startMsg)
-			c.hub.broadcast <- startMsgJson
-		}
-
 		select {
 		case message, ok := <-c.send:
 			// タイムアウト時間の設定
