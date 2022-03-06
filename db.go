@@ -178,8 +178,7 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 				return false, "false", time.Now(), temp_string, temp_int
 			}
 		}
-		participants_err := db.Find(&participants, "meeting_id = ? AND participant_order != -1", meetingId).Error
-		if participants_err != nil {
+		if db.Find(&participants, "meeting_id = ? AND participant_order != -1", meetingId); len(participants) == 0 {
 			fmt.Println("会議非存在")
 			temp_string := []string{"false"}
 			temp_int := []int{-1}
@@ -237,7 +236,7 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 	questions := make([]Question, 0, 10)
 	question_user_id := ""
 	question_id := -1
-	if questions_err := db.Find(&questions, "document_id = ?", documentId).Error; questions_err == nil {
+	if db.Find(&questions, "document_id = ?", documentId); len(questions) != 0 {
 		sort.Sort(ByQuestionTime(questions))
 		for _, q := range questions {
 			if !q.QuestionOk {
@@ -253,7 +252,7 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 	}
 	if isUserId {
 		participants := make([]Participant, 0, 10)
-		if participants_err := db.Find(&participants, "meeting_id = ? AND user_id != ?", meetingId, presenterId).Error; participants_err == nil {
+		if db.Find(&participants, "meeting_id = ? AND user_id != ?", meetingId, presenterId); len(participants) != 0 {
 			sort.Sort(ReverseBySpeakNum(participants))
 			rand_max := 3
 			if len(participants) < 3 {
