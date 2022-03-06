@@ -118,7 +118,6 @@ func loginUser(db *gorm.DB, userId string, userPassword string) (bool, string) {
 func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, presenterIds []string) (bool, int) {
 	var (
 		user         User
-		documentIds  []int
 		layout       = "2006/01/02 15:04:05"
 		location, _  = time.LoadLocation("Asia/Tokyo")
 		startTime, _ = time.ParseInLocation(layout, startTimeStr, location)
@@ -131,9 +130,7 @@ func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, present
 				participant := Participant{MeetingId: meeting.MeetingId, UserId: user.UserId, SpeakNum: 0, ParticipantOrder: i}
 				if err := db.Create(&participant).Error; err == nil {
 					document := Document{UserId: user.UserId, MeetingId: meeting.MeetingId}
-					if err := db.Create(&document).Error; err == nil {
-						documentIds = append(documentIds, document.DocumentId)
-					} else {
+					if err := db.Create(&document).Error; err != nil {
 						fmt.Printf("create失敗(空の資料作成に失敗しました)\n")
 						return false, -1
 					}
