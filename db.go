@@ -10,10 +10,6 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-var (
-	notAnnounced = map[int]bool{}
-)
-
 type User struct {
 	UserId       string //`json:"user_id"`
 	UserName     string //`json:"user_name"`
@@ -21,9 +17,10 @@ type User struct {
 }
 
 type Meeting struct {
-	MeetingId        int    `gorm:"AUTO_INCREMENT"`
-	MeetingName      string //`json:"meeting_name`
-	MeetingStartTime time.Time
+	MeetingId        int       `gorm:"AUTO_INCREMENT"`
+	MeetingName      string    //`json:"meeting_name`
+	MeetingStartTime time.Time //`json:meeting_start_time`
+	MeetingDone      bool      //`json:meeting_done`
 }
 
 type Participant struct {
@@ -112,7 +109,7 @@ func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, present
 		layout       = "2006/01/02 15:04:05"
 		location, _  = time.LoadLocation("Asia/Tokyo")
 		startTime, _ = time.ParseInLocation(layout, startTimeStr, location)
-		meeting      = Meeting{MeetingName: meetingName, MeetingStartTime: startTime}
+		meeting      = Meeting{MeetingName: meetingName, MeetingStartTime: startTime, MeetingDone: false}
 	)
 
 	if err := db.Create(&meeting).Error; err == nil {
@@ -136,7 +133,6 @@ func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, present
 				return -1, "", "", []string{}, []int{}
 			}
 		}
-		notAnnounced[meeting.MeetingId] = true
 		fmt.Printf("create成功: %s, %s, %s\n", meetingName, startTimeStr, presenters)
 		return meeting.MeetingId, meetingName, startTimeStr, presenters, documentIds
 	} else {
@@ -231,17 +227,16 @@ func getInitiatedMeetingId(db *gorm.DB) int {
 		location, _ = time.LoadLocation("Asia/Tokyo")
 		now         = time.Now().In(location)
 	)
-	db.Where("meeting_start_time < ?", now).Find(&meetings)
+	db.Where("meeting_start_time < ? & meeting_done = ?", now, false).Find(&meetings)
 
 	sort.Slice(meetings, func(i, j int) bool {
 		return meetings[i].MeetingStartTime.After(meetings[j].MeetingStartTime)
 	})
 
 	for _, meeting := range meetings {
-		// TODO: meeting.MeetingIdのkeyがない場合を検討
-		if meeting.MeetingStartTime.Format(layout) == now.Format(layout) && notAnnounced[meeting.MeetingId] {
-			fmt.Printf("meeting(%v)を開始します\n", meeting)
-			notAnnounced[meeting.MeetingId] = false
+		if meeting.MeetingStartTime.Format(layout) == now.Format(layout) && !meeting.MeetingDone {
+			fmt.Printf("meeting(%v)開始\n", meeting)
+			db.Model(&meeting).Where("meeting_id = ?", meeting.MeetingId).Update("meeting_done", true)
 			return meeting.MeetingId
 		}
 	}
