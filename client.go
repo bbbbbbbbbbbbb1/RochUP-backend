@@ -236,7 +236,7 @@ func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
 
 	if !isReserved[meetingId] {
 		isReserved[meetingId] = true
-		fmt.Println("開始通知を予約")
+		fmt.Println("開始通知を予約しました:", startTime.In(location))
 		time.Sleep(time.Until(startTime.In(location)))
 		message := ModeratorMsg{
 			MessageType:      "moderator_msg",
@@ -244,11 +244,11 @@ func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
 			ModeratorMsgBody: "Let's enjoy talking!",
 		}
 		messagejson, _ := json.Marshal(message)
-		fmt.Println("開始通知を送信:", time.Now().In(location))
 		hub.broadcast <- messagejson
+		fmt.Println("開始通知を送信しました:", time.Now().In(location))
 		setMeetingDone(db, meetingId)
 	} else {
-		fmt.Println("開始通知は予約済")
+		fmt.Println("開始通知は既に予約済です:", startTime.In(location))
 	}
 }
 
