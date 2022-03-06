@@ -237,7 +237,7 @@ func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
 		fmt.Println("開始通知を予約")
 		time.Sleep(time.Until(startTime.In(time.Local)))
 		message := ModeratorMsg{
-			Messagetype:      "moderator_msg",
+			MessageType:      "moderator_msg",
 			MeetingId:        meetingId,
 			ModeratorMsgBody: "Let's enjoy talking!",
 		}
