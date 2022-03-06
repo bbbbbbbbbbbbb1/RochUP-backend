@@ -22,6 +22,11 @@ type UserLoginRequest struct {
 	UserPassword string `json:"userPassword"`
 }
 
+type UserLoginResult struct {
+	Result   bool   `json:"result"`
+	UserName string `json:"userName"`
+}
+
 type CreateMeetingRequest struct {
 	MeetingName      string   `json:"meetingName"`
 	MeetingStartTime string   `json:"meetingStartTime"`
@@ -71,16 +76,18 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 	})
 
 	e.POST("/user/login", func(c echo.Context) error {
-		request := new(UserSignupRequest)
+		request := new(UserLoginRequest)
 		err := c.Bind(request)
 		if err == nil {
-			result := &Result{
-				Result: loginUser(db, request.UserId, request.UserPassword),
+			resultLogin, userName := loginUser(db, request.UserId, request.UserPassword)
+			result := &UserLoginResult{
+				Result:   resultLogin,
+				UserName: userName,
 			}
 
 			return c.JSON(http.StatusOK, result)
 		} else {
-			return c.JSON(http.StatusBadRequest, &Result{Result: false})
+			return c.JSON(http.StatusBadRequest, &UserLoginResult{Result: false, UserName: ""})
 		}
 	})
 
