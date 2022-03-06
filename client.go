@@ -232,20 +232,23 @@ func (c *Client) readPump() {
 }
 
 func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
+	location, _ := time.LoadLocation("Asia/Tokyo")
+
 	if !isReserved[meetingId] {
 		isReserved[meetingId] = true
 		fmt.Println("開始通知を予約")
-		time.Sleep(time.Until(startTime.In(time.Local)))
+		time.Sleep(time.Until(startTime.In(location)))
 		message := ModeratorMsg{
 			MessageType:      "moderator_msg",
 			MeetingId:        meetingId,
 			ModeratorMsgBody: "Let's enjoy talking!",
 		}
 		messagejson, _ := json.Marshal(message)
+		fmt.Println("開始通知を送信:", time.Now().In(location))
 		hub.broadcast <- messagejson
 		setMeetingDone(db, meetingId)
 	} else {
-		fmt.Println("開始通知は予約済") // debug
+		fmt.Println("開始通知は予約済")
 	}
 }
 
