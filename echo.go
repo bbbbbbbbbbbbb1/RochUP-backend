@@ -34,8 +34,9 @@ type CreateMeetingRequest struct {
 }
 
 type CreateMeetingResult struct {
-	Result    bool `json:"result"`
-	MeetingId int  `json:"meetingId"`
+	Result      bool   `json:"result"`
+	MeetingId   int    `json:"meetingId"`
+	MeetingName string `json:"meetingName"`
 }
 
 type JoinMeetingRequest struct {
@@ -120,10 +121,11 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 		request := new(CreateMeetingRequest)
 		err := c.Bind(request)
 		if err == nil {
-			resultCreateMeeting, meetingId := createMeeting(db, request.MeetingName, request.MeetingStartTime, request.PresenterIds)
+			resultCreateMeeting, meetingId, meetingName := createMeeting(db, request.MeetingName, request.MeetingStartTime, request.PresenterIds)
 			result := &CreateMeetingResult{
-				Result:    resultCreateMeeting,
-				MeetingId: meetingId,
+				Result:      resultCreateMeeting,
+				MeetingId:   meetingId,
+				MeetingName: meetingName,
 			}
 
 			return c.JSON(http.StatusOK, result)

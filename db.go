@@ -115,7 +115,7 @@ func loginUser(db *gorm.DB, userId string, userPassword string) (bool, string) {
 	}
 }
 
-func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, presenterIds []string) (bool, int) {
+func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, presenterIds []string) (bool, int, string) {
 	var (
 		user         User
 		layout       = "2006/01/02 15:04:05"
@@ -132,22 +132,22 @@ func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, present
 					document := Document{UserId: user.UserId, MeetingId: meeting.MeetingId}
 					if err := db.Create(&document).Error; err != nil {
 						fmt.Printf("create失敗(空の資料作成に失敗しました)\n")
-						return false, -1
+						return false, -1, ""
 					}
 				} else { // TODO: transaction
 					fmt.Printf("create失敗(発表者%sの登録に失敗しました): %s, %s, %s\n", presenter, meetingName, startTimeStr, presenterIds)
-					return false, -1
+					return false, -1, ""
 				}
 			} else {
 				fmt.Printf("create失敗(発表者%sが見つかりません): %s, %s, %s\n", presenter, meetingName, startTimeStr, presenterIds)
-				return false, -1
+				return false, -1, ""
 			}
 		}
 		fmt.Printf("create成功: %s, %s, %s\n", meetingName, startTimeStr, presenterIds)
-		return true, meeting.MeetingId
+		return true, meeting.MeetingId, meeting.MeetingName
 	} else {
 		fmt.Printf("create失敗(会議の登録に失敗しました): %s, %s, %s\n", meetingName, startTimeStr, presenterIds)
-		return false, -1
+		return false, -1, ""
 	}
 }
 
