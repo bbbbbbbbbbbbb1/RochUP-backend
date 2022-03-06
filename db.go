@@ -227,7 +227,7 @@ func getInitiatedMeetingId(db *gorm.DB) int {
 		location, _ = time.LoadLocation("Asia/Tokyo")
 		now         = time.Now().In(location)
 	)
-	db.Where("meeting_start_time < ? & meeting_done = ?", now, false).Find(&meetings)
+	db.Where("meeting_start_time < ? AND meeting_done = ?", now, false).Find(&meetings)
 
 	sort.Slice(meetings, func(i, j int) bool {
 		return meetings[i].MeetingStartTime.After(meetings[j].MeetingStartTime)
