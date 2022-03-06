@@ -20,10 +20,10 @@ const (
 	writeWait = 10 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 11 * time.Second
+	pongWait = 120 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriod = (pongWait * 9) / 10
+	pingPeriod = (pongWait * 5) / 20
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
@@ -195,9 +195,14 @@ func (c *Client) writePump() {
 		c.conn.Close()
 	}()
 	for {
+		for {
+			time.Sleep(1 * time.Millisecond)
+			if time.Now().Format("05") == "00" {
+				break
+			}
+		}
 		// TODO: この位置で大丈夫か
-		meetingId := getInitiatedMeetingId(db)
-		if meetingId > 0 {
+		if meetingId := getInitiatedMeetingId(db); meetingId > 0 {
 			startMsg := ModeratorMsg{
 				Messagetype:      "moderator_msg",
 				MeetingId:        meetingId,
