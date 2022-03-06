@@ -180,6 +180,7 @@ func (c *Client) readPump() {
 				DocumentPage: documentPage,
 				QuestionTime: questionTimeStr,
 			}
+
 		case "finishword":
 			meetingId := int(jsonObj.(map[string]interface{})["meetingId"].(float64))
 			presenterId := jsonObj.(map[string]interface{})["presenterId"].(string)

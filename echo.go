@@ -30,15 +30,12 @@ type UserLoginResult struct {
 type CreateMeetingRequest struct {
 	MeetingName      string   `json:"meetingName"`
 	MeetingStartTime string   `json:"meetingStartTime"`
-	Presenters       []string `json:"presenters"`
+	PresenterIds     []string `json:"presenterIds"`
 }
 
 type CreateMeetingResult struct {
-	MeetingId        int      `json:"meetingId"`
-	MeetingName      string   `json:"meetingName"`
-	MeetingStartTime string   `json:"meetingStartTime"`
-	Presenters       []string `json:"presenters"`
-	DocumentIds      []int    `json:"documentIds"`
+	Result    bool `json:"result"`
+	MeetingId int  `json:"meetingId"`
 }
 
 type JoinMeetingRequest struct {
@@ -50,7 +47,8 @@ type JoinMeetingResult struct {
 	Result           bool     `json:"result"`
 	MeetingName      string   `json:"meetingName"`
 	MeetingStartTime string   `json:"meetingStartTime"`
-	Presenters       []string `json:"presenters"`
+	PresenterNames   []string `json:"presenterNames"`
+	PresenterIds     []string `json:"presenterIds"`
 	DocumentIds      []int    `json:"documentIds"`
 }
 
@@ -95,14 +93,15 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 		request := new(JoinMeetingRequest)
 		err := c.Bind(request)
 		if err == nil {
-			resultJoinMeeting, meetingName, meetingStartTime, presenterNames, documentIds := joinMeeting(db, request.UserId, request.MeetingId)
+			resultJoinMeeting, meetingName, meetingStartTime, presenterNames, presenterIds, documentIds := joinMeeting(db, request.UserId, request.MeetingId)
 			layout := "2006/01/02 15:04:05"
 			meetingStartTimeString := meetingStartTime.Format(layout)
 			result := &JoinMeetingResult{
 				Result:           resultJoinMeeting,
 				MeetingName:      meetingName,
 				MeetingStartTime: meetingStartTimeString,
-				Presenters:       presenterNames,
+				PresenterNames:   presenterNames,
+				PresenterIds:     presenterIds,
 				DocumentIds:      documentIds,
 			}
 			return c.JSON(http.StatusOK, result)
@@ -121,13 +120,10 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 		request := new(CreateMeetingRequest)
 		err := c.Bind(request)
 		if err == nil {
-			meetingId, meetingName, meetingStartTime, presenters, documentIds := createMeeting(db, request.MeetingName, request.MeetingStartTime, request.Presenters)
+			resultCreateMeeting, meetingId := createMeeting(db, request.MeetingName, request.MeetingStartTime, request.PresenterIds)
 			result := &CreateMeetingResult{
-				MeetingId:        meetingId,
-				MeetingName:      meetingName,
-				MeetingStartTime: meetingStartTime,
-				Presenters:       presenters,
-				DocumentIds:      documentIds,
+				Result:    resultCreateMeeting,
+				MeetingId: meetingId,
 			}
 
 			return c.JSON(http.StatusOK, result)
