@@ -291,11 +291,11 @@ func getUserName(db *gorm.DB, userId string) string {
 	return user.UserName
 }
 
-func getQuestionBody(db *gorm.DB, questionId int) string {
+func getQuestionBody(db *gorm.DB, questionId int) (string, int) {
 	var question Question
 	if err := db.First(&question, "question_id = ?", questionId).Error; err != nil {
 		fmt.Printf("質問が非存在: %d\n", questionId)
-		return ""
+		return "", -1
 	}
-	return question.QuestionBody
+	return question.QuestionBody, question.DocumentPage
 }

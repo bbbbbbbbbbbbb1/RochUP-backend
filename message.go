@@ -8,7 +8,7 @@ import (
 
 const (
 	presenEndMessage       = "発表ありがとうございました．"
-	questionBodyAskMessage = "匿名質問です．%s\n"
+	questionBodyAskMessage = "匿名質問です．%dページについての質問です．%s\n"
 	questionPersonMessage  = "次に%sさん，質問お願いします．\n"
 	questionEndMessage     = "回答ありがとうございました．"
 	personEndMessage       = "これで%sさんの発表時間を終わります．次の発表者は%sさんです．よろしくお願いします．\n"
@@ -29,9 +29,9 @@ func presenOrQuestionEnd(db *gorm.DB, meetingId int, presenterId string, documen
 
 		return fmt.Sprintf(endMessage+questionPersonMessage, questionUserName)
 	} else { // 来ている質問を使う
-		questionBody := getQuestionBody(db, questionId)
+		questionBody, documentPage := getQuestionBody(db, questionId)
 
-		return fmt.Sprintf(endMessage+questionBodyAskMessage, questionBody)
+		return fmt.Sprintf(endMessage+questionBodyAskMessage, documentPage, questionBody)
 	}
 }
 
