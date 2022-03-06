@@ -18,9 +18,10 @@ type User struct {
 }
 
 type Meeting struct {
-	MeetingId        int    `gorm:"AUTO_INCREMENT"`
-	MeetingName      string //`json:"meeting_name`
-	MeetingStartTime time.Time
+	MeetingId        int       `gorm:"AUTO_INCREMENT"`
+	MeetingName      string    //`json:"meeting_name`
+	MeetingStartTime time.Time //`json:meeting_start_time`
+	MeetingDone      bool      //`json:meeting_done`
 }
 
 type Participant struct {
@@ -121,7 +122,7 @@ func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, present
 		layout       = "2006/01/02 15:04:05"
 		location, _  = time.LoadLocation("Asia/Tokyo")
 		startTime, _ = time.ParseInLocation(layout, startTimeStr, location)
-		meeting      = Meeting{MeetingName: meetingName, MeetingStartTime: startTime}
+		meeting      = Meeting{MeetingName: meetingName, MeetingStartTime: startTime, MeetingDone: false}
 	)
 
 	if err := db.Create(&meeting).Error; err == nil {
@@ -286,4 +287,10 @@ func getQuestionBody(db *gorm.DB, questionId int) (string, int) {
 		return "", -1
 	}
 	return question.QuestionBody, question.DocumentPage
+}
+
+func setMeetingDone(db *gorm.DB, meetingId int) {
+	var meeting Meeting
+	db.First(&meeting, "meeting_id = ?", meetingId)
+	db.Model(&meeting).Where("meeting_id = ?", meetingId).Update("meeting_done", true)
 }

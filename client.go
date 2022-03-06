@@ -30,8 +30,9 @@ const (
 )
 
 var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
+	newline    = []byte{'\n'}
+	space      = []byte{' '}
+	isReserved = map[int]bool{} // 会議開始の司会メッセージを通知予約したか
 )
 
 var (
@@ -228,6 +229,27 @@ func (c *Client) readPump() {
 		// 自分のメッセージをhubのbroadcastチャネルに送り込む
 		fmt.Printf("%+v\n", messagestruct)
 		c.hub.broadcast <- messagejson
+	}
+}
+
+func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
+	location, _ := time.LoadLocation("Asia/Tokyo")
+
+	if !isReserved[meetingId] {
+		isReserved[meetingId] = true
+		fmt.Println("開始通知を予約しました:", startTime.In(location))
+		time.Sleep(time.Until(startTime.In(location)))
+		message := ModeratorMsg{
+			MessageType:      "moderator_msg",
+			MeetingId:        meetingId,
+			ModeratorMsgBody: "Let's enjoy talking!",
+		}
+		messagejson, _ := json.Marshal(message)
+		hub.broadcast <- messagejson
+		fmt.Println("開始通知を送信しました:", time.Now().In(location))
+		setMeetingDone(db, meetingId)
+	} else {
+		fmt.Println("開始通知は既に予約済です:", startTime.In(location))
 	}
 }
 
