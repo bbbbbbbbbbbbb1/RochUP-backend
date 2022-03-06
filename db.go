@@ -92,16 +92,16 @@ func signupUser(db *gorm.DB, userId string, userName string, userPassword string
 	}
 }
 
-func loginUser(db *gorm.DB, userId string, userPassword string) bool {
+func loginUser(db *gorm.DB, userId string, userPassword string) (bool, string) {
 	var user User
 	// err := db.Find(&user).Error
 	err := db.First(&user, "user_id = ? AND user_password = ?", userId, userPassword).Error
 	if err == nil {
 		fmt.Printf("login成功: %s, %s\n", userId, userPassword)
-		return true
+		return true, user.UserName
 	} else {
 		fmt.Println("login失敗")
-		return false
+		return false, ""
 	}
 }
 
