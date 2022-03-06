@@ -87,6 +87,13 @@ type QuestionResult struct {
 	QuestionTime string `json:"questionTime"`
 }
 
+type QuestionVoteResult struct {
+	MessageType string `json:"messageType"`
+	MeetingId   int    `json:"meetingId"`
+	QuestionId  int    `json:"questionId"`
+	VoteNum     int    `json:"voteNum"`
+}
+
 type ModeratorMsg struct {
 	MessageType      string `json:"messageType"`
 	MeetingId        int    `json:"meetingId"`
@@ -180,6 +187,19 @@ func (c *Client) readPump() {
 				DocumentPage: documentPage,
 				QuestionTime: questionTimeStr,
 			}
+		case "question_vote":
+			questionId := int(jsonObj.(map[string]interface{})["questionId"].(float64))
+			isVote := jsonObj.(map[string]interface{})["isVote"].(bool)
+
+			meetingId, questionId, voteNum := voteQuestion(db, questionId, isVote)
+
+			messagestruct = QuestionVoteResult{
+				MessageType: message_type,
+				MeetingId:   meetingId,
+				QuestionId:  questionId,
+				VoteNum:     voteNum,
+			}
+
 		case "finishword":
 			meetingId := int(jsonObj.(map[string]interface{})["meetingId"].(float64))
 			presenterId := jsonObj.(map[string]interface{})["presenterId"].(string)

@@ -267,6 +267,32 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 	return isUserId, question_user_id, question_id
 }
 
+func voteQuestion(db *gorm.DB, questionId int, isVote bool) (int, int, int) {
+	var question Question
+	var document Document
+	if err := db.First(&question, "question_id = ?", questionId).Error; err != nil {
+		fmt.Printf("質問が非存在: %d\n", questionId)
+		return -1, -1, -1
+	}
+	voteNum := question.VoteNum
+	if isVote {
+		voteNum += 1
+	} else {
+		voteNum -= 1
+	}
+	if err := db.Model(&question).Where("question_id = ?", questionId).Update("vote_num", voteNum).Error; err != nil {
+		fmt.Printf("update失敗(質問の投票数の更新に失敗しました): %d\n", voteNum)
+		return -1, -1, -1
+	}
+
+	if err := db.First(&document, "document_id = ?", question.DocumentId).Error; err != nil {
+		fmt.Printf("資料が非存在: %d\n", question.DocumentId)
+		return -1, -1, -1
+	}
+
+	return document.MeetingId, questionId, voteNum
+}
+
 func getNextPresenterId(db *gorm.DB, meetingId int, nowPresenterId string) (bool, string) {
 	var participant Participant
 	if err := db.First(&participant, "meeting_id = ? AND user_id = ?", meetingId, nowPresenterId).Error; err != nil {
