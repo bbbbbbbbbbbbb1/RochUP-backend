@@ -79,12 +79,23 @@ type Message struct {
 
 type QuestionResult struct {
 	MessageType  string `json:"messageType"`
+	QuestionId   int    `json:"questionId"`
 	MeetingId    int    `json:"meetingId"`
 	QuestionBody string `json:"questionBody"`
 	DocumentId   int    `json:"documentId"`
 	DocumentPage int    `json:"documentPage"`
 	QuestionTime string `json:"questionTime"`
 }
+
+type ModeratorMsg struct {
+	MessageType      string `json:"messageType"`
+	MeetingId        int    `json:"meetingId"`
+	ModeratorMsgBody string `json:"moderatorMsgBody"`
+}
+
+var questionCount = make(map[int]int)
+
+const maxQuestionNum = 5
 
 func loadJson(byteArray []byte) (interface{}, error) {
 	var jsonObj interface{}
@@ -154,20 +165,62 @@ func (c *Client) readPump() {
 				QuestionTime: questionTime,
 			}
 
-			if !createQuestion(db, question) {
+			isCreateQuestionOK, questionId := createQuestion(db, question)
+
+			if !isCreateQuestionOK {
 				return
 			}
 
 			messagestruct = QuestionResult{
 				MessageType:  message_type,
+				QuestionId:   questionId,
 				MeetingId:    meetingId,
 				QuestionBody: questionBody,
 				DocumentId:   documentId,
 				DocumentPage: documentPage,
 				QuestionTime: questionTimeStr,
 			}
+		case "finishword":
+			meetingId := int(jsonObj.(map[string]interface{})["meetingId"].(float64))
+			presenterId := jsonObj.(map[string]interface{})["presenterId"].(string)
+			documentId := int(jsonObj.(map[string]interface{})["documentId"].(float64))
+			finishType := jsonObj.(map[string]interface{})["finishType"].(string)
+
+			var moderatorMsg string
+			// 規定の質問数に達した場合
+			if questionCount[meetingId] >= maxQuestionNum {
+				endPresenter, nextUserId := getNextPresenterId(db, meetingId, presenterId)
+				if !endPresenter {
+					moderatorMsg = personEnd(presenterId, nextUserId)
+				} else {
+					moderatorMsg = meetingEnd()
+				}
+				questionCount[meetingId] = 0
+			} else {
+				if finishType == "present" {
+					moderatorMsg = presenOrQuestionEnd(db, meetingId, presenterId, documentId, true)
+				} else if finishType == "question" {
+					moderatorMsg = presenOrQuestionEnd(db, meetingId, presenterId, documentId, false)
+				} else {
+					fmt.Printf("予期せぬfinishType:%s\n", finishType)
+					continue
+				}
+				if questionCount[meetingId] == 0 {
+					questionCount[meetingId] = 1
+				} else {
+					questionCount[meetingId] += 1
+				}
+				fmt.Printf("現在の質問数：%d\n", questionCount[meetingId])
+			}
+			fmt.Println(moderatorMsg)
+
+			messagestruct = ModeratorMsg{
+				MessageType:      "moderator_msg",
+				MeetingId:        meetingId,
+				ModeratorMsgBody: moderatorMsg,
+			}
 		default:
-			return
+			continue
 		}
 		messagejson, _ := json.Marshal(messagestruct)
 
