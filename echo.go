@@ -63,6 +63,16 @@ type DocumentRegisterResult struct {
 	Result bool `json:"result"`
 }
 
+type DocumentGetRequest struct {
+	DocumentId int `json:"documentId"`
+}
+
+type DocumentGetResult struct {
+	Result      bool   `json:"result"`
+	DocumentUrl string `json:"documentUrl"`
+	Script      string `json:"script"`
+}
+
 func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 
 	e.GET("/", func(c echo.Context) error {
@@ -154,6 +164,22 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 			resultDocumentRegister := documentRegister(db, request.DocumentId, request.DocumentUrl, request.Script)
 			result := &DocumentRegisterResult{
 				Result: resultDocumentRegister,
+			}
+			return c.JSON(http.StatusOK, result)
+		} else {
+			return c.JSON(http.StatusBadRequest, &Result{Result: false})
+		}
+	})
+
+	e.POST("/document/get", func(c echo.Context) error {
+		request := new(DocumentGetRequest)
+		err := c.Bind(request)
+		if err == nil {
+			resultDocumentGet, documentUrl, script := documentGet(db, request.DocumentId)
+			result := &DocumentGetResult{
+				Result:      resultDocumentGet,
+				DocumentUrl: documentUrl,
+				Script:      script,
 			}
 			return c.JSON(http.StatusOK, result)
 		} else {

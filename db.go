@@ -371,6 +371,29 @@ func getDocumentId(db *gorm.DB, userId string, meetingId int) int {
 	return document.DocumentId
 }
 
+func documentGet(db *gorm.DB, documentId int) (bool, string, string) {
+	var (
+		document    Document
+		documentUrl *string
+		script      *string
+		emptyString = ""
+	)
+
+	if err := db.First(&document, "document_id = ?", documentId).Error; err != nil {
+		fmt.Printf("資料が非存在: %d\n", documentId)
+		return false, "", ""
+	}
+	if documentUrl = document.DocumentUrl; documentUrl == nil {
+		fmt.Printf("資料URLが非存在: %d\n", documentId)
+		documentUrl = &emptyString
+	}
+	if script = document.Script; script == nil {
+		fmt.Printf("原稿が非存在: %d\n", documentId)
+		script = &emptyString
+	}
+	return true, *documentUrl, *script
+}
+
 func getPresenterId(db *gorm.DB, documentId int) string {
 	var document Document
 	if err := db.First(&document, "document_id = ?", documentId).Error; err != nil {
