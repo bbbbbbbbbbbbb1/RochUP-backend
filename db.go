@@ -46,8 +46,8 @@ type Document struct {
 	DocumentId  int `gorm:"AUTO_INCREMENT"`
 	UserId      string
 	MeetingId   int
-	DocumentUrl *string `gorm:"type:mediumtext"`
-	script      *string `gorm:"type:longtext"`
+	DocumentUrl *string
+	Script      *string
 }
 
 type ByParticipantOrder []Participant
@@ -218,17 +218,21 @@ func documentRegister(db *gorm.DB, documentId int, documentUrl string, script st
 		fmt.Printf("資料が非存在: %d\n", documentId)
 		return false
 	}
-	if document_err := db.Model(&document).Where("document_id = ?", document.DocumentId).Update("document_url", documentUrl).Error; document_err != nil {
-		fmt.Printf("update失敗(資料URLの登録に失敗しました): %d\n", document.DocumentId)
-		return false
-	} else {
-		fmt.Printf("update成功(資料URLの登録に成功しました): %d\n", document.DocumentId)
+	if documentUrl != "" {
+		if document_err := db.Model(&document).Where("document_id = ?", document.DocumentId).Update("document_url", documentUrl).Error; document_err != nil {
+			fmt.Printf("update失敗(資料URLの登録に失敗しました): %d\n", document.DocumentId)
+			return false
+		} else {
+			fmt.Printf("update成功(資料URLの登録に成功しました): %d\n", document.DocumentId)
+		}
 	}
-	if script_err := db.Model(&document).Where("document_id = ?", document.DocumentId).Update("script", script).Error; script_err != nil {
-		fmt.Printf("update失敗(原稿の登録に失敗しました): %d\n", document.DocumentId)
-		return false
-	} else {
-		fmt.Printf("update成功(原稿の登録に成功しました): %d\n", document.DocumentId)
+	if script != "" {
+		if script_err := db.Model(&document).Where("document_id = ?", document.DocumentId).Update("script", script).Error; script_err != nil {
+			fmt.Printf("update失敗(原稿の登録に失敗しました): %d\n", document.DocumentId)
+			return false
+		} else {
+			fmt.Printf("update成功(原稿の登録に成功しました): %d\n", document.DocumentId)
+		}
 	}
 
 	return true

@@ -3,6 +3,6 @@ content-type: application/json
 
 {
     "documentId": 4,
-    "documentUrl": "http://test/test/hacku/test",
-    "script": "test"
+    "documentUrl": "http://test2",
+    "script": ""
 }
