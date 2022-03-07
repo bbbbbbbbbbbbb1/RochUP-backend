@@ -68,15 +68,9 @@ type Message struct {
 	Message     string `json:"message"`
 }
 
-// type QuestionRequest struct {
-// 	MessageType  string `json:"messageType"`
-// 	UserId       string `json:"userId"`
-// 	MeetingId    int    `json:"meetingId"`
-// 	QuestionBody string `json:"questionBody"`
-// 	DocumentId   int    `json:"documentId`
-// 	DocumentPage int    `json:"documentPage`
-// 	QuestionTime string `json:questionTime`
-// }
+const (
+	ModeratorMsgType = "moderator_msg"
+)
 
 type QuestionResult struct {
 	MessageType  string `json:"messageType"`
@@ -88,10 +82,22 @@ type QuestionResult struct {
 	QuestionTime string `json:"questionTime"`
 }
 
+type QuestionVoteResult struct {
+	MessageType string `json:"messageType"`
+	MeetingId   int    `json:"meetingId"`
+	QuestionId  int    `json:"questionId"`
+	VoteNum     int    `json:"voteNum"`
+}
+
 type ModeratorMsg struct {
 	MessageType      string `json:"messageType"`
 	MeetingId        int    `json:"meetingId"`
 	ModeratorMsgBody string `json:"moderatorMsgBody"`
+	IsStartPresen    bool   `json:"isStartPresen"`
+	QuestionId       int    `json:"questionId"`
+	QuestionUserId   string `json:"questionUserId"`
+	DocumentId       int    `json:"documentId"`
+	DocumentPage     int    `json:"documentPage"`
 }
 
 var questionCount = make(map[int]int)
@@ -181,6 +187,18 @@ func (c *Client) readPump() {
 				DocumentPage: documentPage,
 				QuestionTime: questionTimeStr,
 			}
+		case "question_vote":
+			questionId := int(jsonObj.(map[string]interface{})["questionId"].(float64))
+			isVote := jsonObj.(map[string]interface{})["isVote"].(bool)
+
+			meetingId, questionId, voteNum := voteQuestion(db, questionId, isVote)
+
+			messagestruct = QuestionVoteResult{
+				MessageType: message_type,
+				MeetingId:   meetingId,
+				QuestionId:  questionId,
+				VoteNum:     voteNum,
+			}
 
 		case "finishword":
 			meetingId := int(jsonObj.(map[string]interface{})["meetingId"].(float64))
@@ -188,23 +206,38 @@ func (c *Client) readPump() {
 			documentId := int(jsonObj.(map[string]interface{})["documentId"].(float64))
 			finishType := jsonObj.(map[string]interface{})["finishType"].(string)
 
-			var moderatorMsg string
+			var (
+				moderatorMsgBody string
+				questionId       int
+				questionUserId   string
+				documentPage     int
+				isStartPresen    = false
+			)
 			// 規定の質問数に達した場合
 			if questionCount[meetingId] >= maxQuestionNum {
 				endPresenter, nextUserId := getNextPresenterId(db, meetingId, presenterId)
 				if !endPresenter {
-					moderatorMsg = personEnd(presenterId, nextUserId)
+					moderatorMsgBody, documentId = personEnd(presenterId, nextUserId, meetingId)
+					isStartPresen = true
+					questionId = -1
+					questionUserId = ""
+					documentPage = -1
 				} else {
-					moderatorMsg = meetingEnd()
+					moderatorMsgBody = meetingEnd()
+					questionId = -1
+					questionUserId = ""
+					documentId = -1
+					documentPage = -1
 				}
 				questionCount[meetingId] = 0
 			} else {
-				if finishType == "present" {
-					moderatorMsg = presenOrQuestionEnd(db, meetingId, presenterId, documentId, true)
-				} else if finishType == "question" {
-					moderatorMsg = presenOrQuestionEnd(db, meetingId, presenterId, documentId, false)
-				} else {
-					fmt.Printf("予期せぬfinishType:%s\n", finishType)
+				switch finishType {
+				case "present":
+					moderatorMsgBody, questionUserId, questionId, documentPage = presenOrQuestionEnd(db, meetingId, documentId, presenterId, true)
+				case "question":
+					moderatorMsgBody, questionUserId, questionId, documentPage = presenOrQuestionEnd(db, meetingId, documentId, presenterId, false)
+				default:
+					fmt.Println("予期せぬfinishType:", finishType)
 					continue
 				}
 				if questionCount[meetingId] == 0 {
@@ -214,12 +247,17 @@ func (c *Client) readPump() {
 				}
 				fmt.Printf("現在の質問数：%d\n", questionCount[meetingId])
 			}
-			fmt.Println(moderatorMsg)
+			fmt.Println(moderatorMsgBody)
 
 			messagestruct = ModeratorMsg{
-				MessageType:      "moderator_msg",
+				MessageType:      ModeratorMsgType,
 				MeetingId:        meetingId,
-				ModeratorMsgBody: moderatorMsg,
+				ModeratorMsgBody: moderatorMsgBody,
+				IsStartPresen:    isStartPresen,
+				QuestionId:       questionId,
+				QuestionUserId:   questionUserId,
+				DocumentId:       documentId,
+				DocumentPage:     documentPage,
 			}
 		default:
 			continue
@@ -240,9 +278,14 @@ func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
 		fmt.Println("開始通知を予約しました:", startTime.In(location))
 		time.Sleep(time.Until(startTime.In(location)))
 		message := ModeratorMsg{
-			MessageType:      "moderator_msg",
+			MessageType:      ModeratorMsgType,
 			MeetingId:        meetingId,
-			ModeratorMsgBody: "Let's enjoy talking!",
+			ModeratorMsgBody: meetingStart(),
+			IsStartPresen:    true,
+			QuestionId:       -1,
+			QuestionUserId:   "",
+			DocumentId:       -1,
+			DocumentPage:     -1,
 		}
 		messagejson, _ := json.Marshal(message)
 		hub.broadcast <- messagejson
