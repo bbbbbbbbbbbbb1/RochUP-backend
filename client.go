@@ -80,6 +80,7 @@ type QuestionResult struct {
 	DocumentId   int    `json:"documentId"`
 	DocumentPage int    `json:"documentPage"`
 	QuestionTime string `json:"questionTime"`
+	PresenterId  string `json:"presenterId"`
 }
 
 type QuestionVoteResult struct {
@@ -96,8 +97,7 @@ type ModeratorMsg struct {
 	IsStartPresen    bool   `json:"isStartPresen"`
 	QuestionId       int    `json:"questionId"`
 	QuestionUserId   string `json:"questionUserId"`
-	DocumentId       int    `json:"documentId"`
-	DocumentPage     int    `json:"documentPage"`
+	PresentOrder     int    `json:"presentOrder"` // only if `IsStartPresen == true`, else = -1
 }
 
 var questionCount = make(map[int]int)
@@ -178,6 +178,8 @@ func (c *Client) readPump() {
 				return
 			}
 
+			presenterId := getPresenterId(db, documentId)
+
 			messagestruct = QuestionResult{
 				MessageType:  message_type,
 				QuestionId:   questionId,
@@ -186,6 +188,7 @@ func (c *Client) readPump() {
 				DocumentId:   documentId,
 				DocumentPage: documentPage,
 				QuestionTime: questionTimeStr,
+				PresenterId:  presenterId,
 			}
 		case "question_vote":
 			questionId := int(jsonObj.(map[string]interface{})["questionId"].(float64))
@@ -203,39 +206,39 @@ func (c *Client) readPump() {
 		case "finishword":
 			meetingId := int(jsonObj.(map[string]interface{})["meetingId"].(float64))
 			presenterId := jsonObj.(map[string]interface{})["presenterId"].(string)
-			documentId := int(jsonObj.(map[string]interface{})["documentId"].(float64))
 			finishType := jsonObj.(map[string]interface{})["finishType"].(string)
 
 			var (
 				moderatorMsgBody string
 				questionId       int
 				questionUserId   string
-				documentPage     int
 				isStartPresen    = false
+				nextOrder        = -1
 			)
 			// 規定の質問数に達した場合
 			if questionCount[meetingId] >= maxQuestionNum {
-				endPresenter, nextUserId := getNextPresenterId(db, meetingId, presenterId)
-				if !endPresenter {
-					moderatorMsgBody, documentId = personEnd(presenterId, nextUserId, meetingId)
+				var (
+					endPresen  bool
+					nextUserId string
+				)
+				endPresen, nextUserId, nextOrder = getNextPresenterId(db, meetingId, presenterId)
+				if !endPresen {
+					moderatorMsgBody = personEnd(presenterId, nextUserId, meetingId)
 					isStartPresen = true
 					questionId = -1
 					questionUserId = ""
-					documentPage = -1
 				} else {
 					moderatorMsgBody = meetingEnd()
 					questionId = -1
 					questionUserId = ""
-					documentId = -1
-					documentPage = -1
 				}
 				questionCount[meetingId] = 0
 			} else {
 				switch finishType {
 				case "present":
-					moderatorMsgBody, questionUserId, questionId, documentPage = presenOrQuestionEnd(db, meetingId, documentId, presenterId, true)
+					moderatorMsgBody, questionUserId, questionId = presenOrQuestionEnd(db, meetingId, presenterId, true)
 				case "question":
-					moderatorMsgBody, questionUserId, questionId, documentPage = presenOrQuestionEnd(db, meetingId, documentId, presenterId, false)
+					moderatorMsgBody, questionUserId, questionId = presenOrQuestionEnd(db, meetingId, presenterId, false)
 				default:
 					fmt.Println("予期せぬfinishType:", finishType)
 					continue
@@ -256,8 +259,7 @@ func (c *Client) readPump() {
 				IsStartPresen:    isStartPresen,
 				QuestionId:       questionId,
 				QuestionUserId:   questionUserId,
-				DocumentId:       documentId,
-				DocumentPage:     documentPage,
+				PresentOrder:     nextOrder,
 			}
 		default:
 			continue
@@ -284,8 +286,7 @@ func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
 			IsStartPresen:    true,
 			QuestionId:       -1,
 			QuestionUserId:   "",
-			DocumentId:       -1,
-			DocumentPage:     -1,
+			PresentOrder:     -1,
 		}
 		messagejson, _ := json.Marshal(message)
 		hub.broadcast <- messagejson

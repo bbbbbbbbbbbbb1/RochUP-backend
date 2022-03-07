@@ -53,6 +53,16 @@ type JoinMeetingResult struct {
 	DocumentIds      []int    `json:"documentIds"`
 }
 
+type DocumentRegisterRequest struct {
+	DocumentId  int    `json:"documentId"`
+	DocumentUrl string `json:"documentUrl"`
+	Script      string `json:"script"`
+}
+
+type DocumentRegisterResult struct {
+	Result bool `json:"result"`
+}
+
 func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 
 	e.GET("/", func(c echo.Context) error {
@@ -131,6 +141,20 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 				MeetingName: meetingName,
 			}
 
+			return c.JSON(http.StatusOK, result)
+		} else {
+			return c.JSON(http.StatusBadRequest, &Result{Result: false})
+		}
+	})
+
+	e.POST("/document/register", func(c echo.Context) error {
+		request := new(DocumentRegisterRequest)
+		err := c.Bind(request)
+		if err == nil {
+			resultDocumentRegister := documentRegister(db, request.DocumentId, request.DocumentUrl, request.Script)
+			result := &DocumentRegisterResult{
+				Result: resultDocumentRegister,
+			}
 			return c.JSON(http.StatusOK, result)
 		} else {
 			return c.JSON(http.StatusBadRequest, &Result{Result: false})

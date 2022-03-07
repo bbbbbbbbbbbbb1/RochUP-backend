@@ -2,6 +2,6 @@ POST http://localhost:8080/meeting/join HTTP/1.1
 content-type: application/json
 
 {
-    "userId": "test00",
-    "meetingId": 1
+    "userId": "ziou1",
+    "meetingId": 4
 }
