@@ -231,7 +231,7 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 		sort.Sort(ByQuestionTime(questions))
 		for _, q := range questions {
 			if !q.QuestionOk {
-				if q_err := db.Model(&q).Update("question_ok", true).Error; q_err != nil {
+				if q_err := db.Model(&q).Where("question_id = ?", q.QuestionId).Update("question_ok", true).Error; q_err != nil {
 					fmt.Printf("update失敗(質問の回答状況の更新に失敗しました): %d\n", q.QuestionId)
 					return false, "", -1
 				}
@@ -249,7 +249,8 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 			if len(participants) < 3 {
 				rand_max = len(participants)
 			}
-			questionUserId = participants[rand.Intn(rand_max)].UserId
+			participant := participants[rand.Intn(rand_max)]
+			questionUserId = participant.UserId
 			question := Question{
 				UserId:       questionUserId,
 				QuestionBody: "",
@@ -261,6 +262,10 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 			}
 			if err := db.Create(&question).Error; err != nil {
 				fmt.Printf("create失敗(質問の登録に失敗しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
+				return false, "", -1
+			}
+			if err := db.Model(&participant).Where("user_id = ? AND meeting_id = ?", participant.UserId, participant.MeetingId).Update("speak_num", participant.SpeakNum+1).Error; err != nil {
+				fmt.Printf("update失敗(参加者の話数の更新に失敗しました): %s, %d, %d\n", participant.UserId, participant.MeetingId, participant.SpeakNum)
 				return false, "", -1
 			}
 			fmt.Printf("create成功(質問の登録に成功しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
@@ -299,18 +304,18 @@ func voteQuestion(db *gorm.DB, questionId int, isVote bool) (int, int, int) {
 	return document.MeetingId, questionId, voteNum
 }
 
-func getNextPresenterId(db *gorm.DB, meetingId int, nowPresenterId string) (bool, string) {
+func getNextPresenterId(db *gorm.DB, meetingId int, nowPresenterId string) (bool, string, int) {
 	var participant Participant
 	if err := db.First(&participant, "meeting_id = ? AND user_id = ?", meetingId, nowPresenterId).Error; err != nil {
 		fmt.Printf("参加者が非存在: %s\n", nowPresenterId)
-		return false, ""
+		return false, "", -1
 	}
 	nextOrder := participant.ParticipantOrder + 1
 	if err := db.First(&participant, "meeting_id = ? AND participant_order = ?", meetingId, nextOrder).Error; err != nil {
-		fmt.Printf("次の発表者が非存在: %d\n", nextOrder)
-		return true, ""
+		fmt.Printf("会議終了につき次の発表者が非存在: %d\n", nextOrder)
+		return true, "", -1
 	}
-	return false, participant.UserId
+	return false, participant.UserId, nextOrder
 }
 
 func getUserName(db *gorm.DB, userId string) string {
@@ -331,10 +336,10 @@ func getQuestionBody(db *gorm.DB, questionId int) (string, int) {
 	return question.QuestionBody, question.DocumentPage
 }
 
-func getDocumentId(db *gorm.DB, nextUserId string, meetingId int) int {
+func getDocumentId(db *gorm.DB, userId string, meetingId int) int {
 	var document Document
-	if err := db.First(&document, "user_id = ? AND meeting_id = ?", nextUserId, meetingId).Error; err != nil {
-		fmt.Printf("資料が非存在: %s, %d\n", nextUserId, meetingId)
+	if err := db.First(&document, "user_id = ? AND meeting_id = ?", userId, meetingId).Error; err != nil {
+		fmt.Printf("資料が非存在: %s, %d\n", userId, meetingId)
 		return -1
 	}
 	return document.DocumentId
