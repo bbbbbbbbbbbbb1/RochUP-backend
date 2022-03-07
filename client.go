@@ -80,6 +80,7 @@ type QuestionResult struct {
 	DocumentId   int    `json:"documentId"`
 	DocumentPage int    `json:"documentPage"`
 	QuestionTime string `json:"questionTime"`
+	PresenterId  string `json:"presenterId"`
 }
 
 type QuestionVoteResult struct {
@@ -177,6 +178,8 @@ func (c *Client) readPump() {
 				return
 			}
 
+			presenterId := getPresenterId(db, documentId)
+
 			messagestruct = QuestionResult{
 				MessageType:  message_type,
 				QuestionId:   questionId,
@@ -185,6 +188,7 @@ func (c *Client) readPump() {
 				DocumentId:   documentId,
 				DocumentPage: documentPage,
 				QuestionTime: questionTimeStr,
+				PresenterId:  presenterId,
 			}
 		case "question_vote":
 			questionId := int(jsonObj.(map[string]interface{})["questionId"].(float64))

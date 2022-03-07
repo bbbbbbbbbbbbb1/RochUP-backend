@@ -62,11 +62,11 @@ func (q ByQuestionTime) Len() int           { return len(q) }
 func (q ByQuestionTime) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
 func (q ByQuestionTime) Less(i, j int) bool { return q[i].QuestionTime.Before(q[j].QuestionTime) }
 
-type ReverseBySpeakNum []Participant
+type BySpeakNum []Participant
 
-func (p ReverseBySpeakNum) Len() int           { return len(p) }
-func (p ReverseBySpeakNum) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func (p ReverseBySpeakNum) Less(i, j int) bool { return p[i].SpeakNum > p[j].SpeakNum }
+func (p BySpeakNum) Len() int           { return len(p) }
+func (p BySpeakNum) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p BySpeakNum) Less(i, j int) bool { return p[i].SpeakNum < p[j].SpeakNum }
 
 // SQLConnect DB接続
 func sqlConnect() (database *gorm.DB, err error) {
@@ -244,7 +244,11 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 	if pickQuestioner {
 		participants := make([]Participant, 0, 10)
 		if db.Find(&participants, "meeting_id = ? AND user_id != ?", meetingId, presenterId); len(participants) != 0 {
-			sort.Sort(ReverseBySpeakNum(participants))
+			sort.Sort(BySpeakNum(participants))
+			fmt.Println(participants[0].SpeakNum)
+			for _, p := range participants {
+				fmt.Println(p.SpeakNum)
+			}
 			rand_max := 3
 			if len(participants) < 3 {
 				rand_max = len(participants)
@@ -343,6 +347,15 @@ func getDocumentId(db *gorm.DB, userId string, meetingId int) int {
 		return -1
 	}
 	return document.DocumentId
+}
+
+func getPresenterId(db *gorm.DB, documentId int) string {
+	var document Document
+	if err := db.First(&document, "document_id = ?", documentId).Error; err != nil {
+		fmt.Printf("資料が非存在: %d\n", documentId)
+		return ""
+	}
+	return document.UserId
 }
 
 func setMeetingDone(db *gorm.DB, meetingId int) {
