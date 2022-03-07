@@ -271,10 +271,6 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 		participants := make([]Participant, 0, 10)
 		if db.Find(&participants, "meeting_id = ? AND user_id != ?", meetingId, presenterId); len(participants) != 0 {
 			sort.Sort(BySpeakNum(participants))
-			fmt.Println(participants[0].SpeakNum)
-			for _, p := range participants {
-				fmt.Println(p.SpeakNum)
-			}
 			rand_max := 3
 			if len(participants) < 3 {
 				rand_max = len(participants)
