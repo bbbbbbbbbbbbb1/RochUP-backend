@@ -12,27 +12,27 @@ import (
 )
 
 type User struct {
-	UserId       string `gorm:"PRIMARY_KEY"`
+	UserId       string //`gorm:"PRIMARY_KEY"`
 	UserName     string //`json:"user_name"`
 	UserPassword string //`json:"user_password"`
 }
 
 type Meeting struct {
-	MeetingId        int       `gorm:"PRIMARY_KEY"`
+	MeetingId        int       `gorm:"AUTO_INCREMENT"`
 	MeetingName      string    //`json:"meeting_name`
 	MeetingStartTime time.Time //`json:meeting_start_time`
 	MeetingDone      bool      //`json:meeting_done`
 }
 
 type Participant struct {
-	MeetingId        int    `gorm:"PRIMARY_KEY"`
-	UserId           string `gorm:"PRIMARY_KEY"`
+	MeetingId        int    //`gorm:"PRIMARY_KEY"`
+	UserId           string //`gorm:"PRIMARY_KEY"`
 	SpeakNum         int    //`json:"speaknum"`
 	ParticipantOrder int    //`json:"participantorder"`
 }
 
 type Question struct {
-	QuestionId   int `gorm:"PRIMARY_KEY"`
+	QuestionId   int `gorm:"AUTO_INCREMENT"`
 	UserId       string
 	QuestionBody string
 	DocumentId   int
@@ -44,11 +44,18 @@ type Question struct {
 }
 
 type Document struct {
-	DocumentId  int `gorm:"PRIMARY_KEY"`
+	DocumentId  int `gorm:"AUTO_INCREMENT"`
 	UserId      string
 	MeetingId   int
 	DocumentUrl *string
 	Script      *string
+}
+
+type Reaction struct {
+	DocumentId   int //`gorm:"PRIMARY_KEY"`
+	DocumentPage int //`gorm:"PRIMARY_KEY"`
+	ReactionNum  int
+	SuggestionOk bool
 }
 
 type ByParticipantOrder []Participant
@@ -62,6 +69,12 @@ type ByQuestionTime []Question
 func (q ByQuestionTime) Len() int           { return len(q) }
 func (q ByQuestionTime) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
 func (q ByQuestionTime) Less(i, j int) bool { return q[i].QuestionTime.Before(q[j].QuestionTime) }
+
+type ReverseByReactionNum []Reaction
+
+func (r ReverseByReactionNum) Len() int           { return len(r) }
+func (r ReverseByReactionNum) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+func (r ReverseByReactionNum) Less(i, j int) bool { return r[i].ReactionNum > r[j].ReactionNum }
 
 type BySpeakNum []Participant
 
@@ -248,8 +261,9 @@ func createQuestion(db *gorm.DB, question Question) (bool, int) {
 	return true, question.QuestionId
 }
 
-func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) (bool, string, int) {
+func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) (bool, bool, string, int) {
 	pickQuestioner := true
+	suggestQuestion := false
 	var question Question
 	var participant Participant
 	questionUserId := ""
@@ -258,30 +272,58 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 	if voice_question_err := db.First(&question, "document_id = ? AND question_ok = ? AND is_voice = ?", documentId, false, true).Error; voice_question_err == nil {
 		if question_err := db.Model(&question).Where("question_id = ?", question.QuestionId).Update("question_ok", true).Error; question_err != nil {
 			fmt.Printf("update失敗(質問の回答状況の更新に失敗しました): %d\n", question.QuestionId)
-			return false, "", -1
+			return false, false, "", -1
 		}
 		if incSpeakNum_err := db.Model(&participant).Where("meeting_id = ? AND user_id = ?", meetingId, question.UserId).Update("speak_num", participant.SpeakNum+1).Error; incSpeakNum_err != nil {
 			fmt.Printf("update失敗(参加者の話数の更新に失敗しました): %s, %d, %d\n", participant.UserId, participant.MeetingId, participant.SpeakNum)
-			return false, "", -1
+			return false, false, "", -1
 		}
 		questionUserId = question.UserId
-		return pickQuestioner, questionUserId, question.QuestionId
+		return pickQuestioner, suggestQuestion, questionUserId, question.QuestionId
 	} else {
 		if not_voice_question_err := db.First(&question, "document_id = ? AND question_ok = ? AND is_voice = ?", documentId, false, false).Error; not_voice_question_err == nil {
 			if question_err := db.Model(&question).Where("question_id = ?", question.QuestionId).Update("question_ok", true).Error; question_err != nil {
 				fmt.Printf("update失敗(質問の回答状況の更新に失敗しました): %d\n", question.QuestionId)
-				return false, "", -1
+				return false, false, "", -1
 			}
 			pickQuestioner = false
 			if incSpeakNum_err := db.Model(&participant).Where("meeting_id = ? AND user_id = ?", meetingId, question.UserId).Update("speak_num", participant.SpeakNum+1).Error; incSpeakNum_err != nil {
 				fmt.Printf("update失敗(参加者の話数の更新に失敗しました): %s, %d, %d\n", participant.UserId, participant.MeetingId, participant.SpeakNum)
-				return false, "", -1
+				return false, false, "", -1
 			}
 		}
 	}
 	if pickQuestioner {
 		participants := make([]Participant, 0, 10)
 		if db.Find(&participants, "meeting_id = ? AND user_id != ?", meetingId, presenterId); len(participants) != 0 {
+			reactions := make([]Reaction, 0, 10)
+			if db.Find(&reactions, "document_id = ? AND suggestion_ok = ?", documentId, false); len(reactions) != 0 {
+				sort.Sort(ReverseByReactionNum(reactions))
+				if reactions[0].ReactionNum >= len(participants)/2 {
+					if reaction_err := db.Model(&reactions[0]).Where("document_id = ? AND document_page = ?", reactions[0].DocumentId, reactions[0].DocumentPage).Update("suggestion_ok", true).Error; reaction_err != nil {
+						fmt.Printf("update失敗(資料リアクションの提案状況の更新に失敗しました): %d, %d\n", reactions[0].DocumentId, reactions[0].DocumentPage)
+						return false, false, "", -1
+					}
+					question = Question{
+						UserId:       "Moderator",
+						QuestionBody: fmt.Sprintf("%dページについての詳しい説明を要求．", reactions[0].DocumentPage),
+						DocumentId:   reactions[0].DocumentId,
+						DocumentPage: reactions[0].DocumentPage,
+						VoteNum:      reactions[0].ReactionNum,
+						QuestionTime: time.Now().In(location),
+						QuestionOk:   true,
+						IsVoice:      false,
+					}
+					if err := db.Create(&question).Error; err != nil {
+						fmt.Printf("create失敗(質問の登録に失敗しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
+						return false, false, "", -1
+					}
+					fmt.Printf("create成功(質問の登録に成功しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
+					pickQuestioner = false
+					suggestQuestion = true
+					return pickQuestioner, suggestQuestion, questionUserId, question.QuestionId
+				}
+			}
 			sort.Sort(BySpeakNum(participants))
 			rand_max := 3
 			if len(participants) < 3 {
@@ -289,7 +331,7 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 			}
 			participant = participants[rand.Intn(rand_max)]
 			questionUserId = participant.UserId
-			question := Question{
+			question = Question{
 				UserId:       questionUserId,
 				QuestionBody: "",
 				DocumentId:   documentId,
@@ -301,19 +343,20 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 			}
 			if err := db.Create(&question).Error; err != nil {
 				fmt.Printf("create失敗(質問の登録に失敗しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
-				return false, "", -1
+				return false, false, "", -1
 			}
 			if err := db.Model(&participant).Where("user_id = ? AND meeting_id = ?", participant.UserId, participant.MeetingId).Update("speak_num", participant.SpeakNum+1).Error; err != nil {
 				fmt.Printf("update失敗(参加者の話数の更新に失敗しました): %s, %d, %d\n", participant.UserId, participant.MeetingId, participant.SpeakNum)
-				return false, "", -1
+				return false, false, "", -1
 			}
 			fmt.Printf("create成功(質問の登録に成功しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
+
 		} else {
 			fmt.Printf("参加者が非存在: %d\n", meetingId)
-			return false, "", -1
+			return false, false, "", -1
 		}
 	}
-	return pickQuestioner, questionUserId, question.QuestionId
+	return pickQuestioner, suggestQuestion, questionUserId, question.QuestionId
 }
 
 func voteQuestion(db *gorm.DB, questionId int, isVote bool) (int, int, int) {
@@ -342,7 +385,7 @@ func voteQuestion(db *gorm.DB, questionId int, isVote bool) (int, int, int) {
 	return document.MeetingId, questionId, voteNum
 }
 
-func HandsUp(db *gorm.DB, userId string, documentId int, documentPage int) int {
+func handsUp(db *gorm.DB, userId string, documentId int, documentPage int) int {
 	var document Document
 	location, _ := time.LoadLocation("Asia/Tokyo")
 
@@ -374,7 +417,7 @@ func HandsUp(db *gorm.DB, userId string, documentId int, documentPage int) int {
 	return document.MeetingId
 }
 
-func HandsDown(db *gorm.DB, userId string, documentId int, documentPage int) int {
+func handsDown(db *gorm.DB, userId string, documentId int, documentPage int) int {
 	var (
 		document Document
 		question Question
@@ -388,7 +431,7 @@ func HandsDown(db *gorm.DB, userId string, documentId int, documentPage int) int
 		fmt.Printf("ユーザーが非存在: %s\n", userId)
 		return -1
 	}
-	if question_err := db.Last(&question, "user_id = ? AND document_id = ? AND document_page = ? AND question_ok = ? AND is_voice = ?", userId, document.DocumentId, documentPage, false, true).Error; question_err != nil {
+	if question_err := db.First(&question, "user_id = ? AND document_id = ? AND document_page = ? AND question_ok = ? AND is_voice = ?", userId, document.DocumentId, documentPage, false, true).Error; question_err != nil {
 		fmt.Printf("質問が非存在: %s, %d, %d\n", userId, document.DocumentId, documentPage)
 		return -1
 	}
@@ -398,6 +441,47 @@ func HandsDown(db *gorm.DB, userId string, documentId int, documentPage int) int
 	}
 	fmt.Printf("delete成功(質問の削除に成功しました): %d\n", question.QuestionId)
 	return document.MeetingId
+}
+
+func voteReaction(db *gorm.DB, documentId int, documentPage int, isReaction bool) (int, int) {
+	var document Document
+	var reaction Reaction
+
+	if document_err := db.First(&document, "document_id = ?", documentId).Error; document_err != nil {
+		fmt.Printf("資料が非存在: %d\n", documentId)
+		return -1, -1
+	}
+
+	if reaction_err := db.First(&reaction, "document_id = ? AND document_page = ?", documentId, documentPage).Error; reaction_err != nil {
+		if !isReaction {
+			fmt.Printf("資料リアクションが非存在: %d, %d\n", documentId, documentPage)
+			return -1, -1
+		}
+		reaction = Reaction{
+			DocumentId:   document.DocumentId,
+			DocumentPage: documentPage,
+			ReactionNum:  1,
+			SuggestionOk: false,
+		}
+		if create_reaction_err := db.Create(&reaction).Error; create_reaction_err != nil {
+			fmt.Printf("create失敗(資料リアクションの登録に失敗しました): %d, %d\n", reaction.DocumentId, reaction.DocumentPage)
+			return -1, -1
+		}
+		fmt.Printf("create成功(資料リアクションの登録に成功しました): %d, %d\n", reaction.DocumentId, reaction.DocumentPage)
+	} else {
+		reactionNum := reaction.ReactionNum
+		if isReaction {
+			reactionNum += 1
+		} else {
+			reactionNum -= 1
+		}
+		if update_reaction_num_err := db.Model(&reaction).Where("document_id = ? AND document_page = ?", reaction.DocumentId, reaction.DocumentPage).Update("reaction_num", reactionNum).Error; update_reaction_num_err != nil {
+			fmt.Printf("update失敗(資料リアクションのリアクション数の更新に失敗しました): %d, %d\n", reaction.DocumentId, reaction.DocumentPage)
+			return -1, -1
+		}
+		fmt.Printf("update成功(資料リアクションのリアクション数の更新に成功しました): %d, %d\n", reaction.DocumentId, reaction.DocumentPage)
+	}
+	return document.MeetingId, reaction.ReactionNum
 }
 
 func getNextPresenterId(db *gorm.DB, meetingId int, nowPresenterId string) (bool, string, int) {
@@ -430,6 +514,15 @@ func getQuestionBody(db *gorm.DB, questionId int) (string, int) {
 		return "", -1
 	}
 	return question.QuestionBody, question.DocumentPage
+}
+
+func getQuestionDocumentPage(db *gorm.DB, questionId int) int {
+	var question Question
+	if err := db.First(&question, "question_id = ?", questionId).Error; err != nil {
+		fmt.Printf("質問が非存在: %d\n", questionId)
+		return -1
+	}
+	return question.DocumentPage
 }
 
 func getDocumentId(db *gorm.DB, userId string, meetingId int) int {
