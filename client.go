@@ -90,6 +90,12 @@ type QuestionVoteResult struct {
 	VoteNum     int    `json:"voteNum"`
 }
 
+type HandsUpResult struct {
+	MessageType string `json:"messageType"`
+	MeetingId   int    `json:"meetingId"`
+	UserId      string `json:"userId"`
+}
+
 type ModeratorMsg struct {
 	MessageType      string `json:"messageType"`
 	MeetingId        int    `json:"meetingId"`
@@ -170,6 +176,7 @@ func (c *Client) readPump() {
 				DocumentPage: documentPage,
 				VoteNum:      0,
 				QuestionTime: questionTime,
+				IsVoice:      false,
 			}
 
 			isCreateQuestionOK, questionId := createQuestion(db, question)
@@ -202,7 +209,25 @@ func (c *Client) readPump() {
 				QuestionId:  questionId,
 				VoteNum:     voteNum,
 			}
+		case "handsup":
+			userId := jsonObj.(map[string]interface{})["userId"].(string)
+			documentId := int(jsonObj.(map[string]interface{})["documentId"].(float64))
+			documentPage := int(jsonObj.(map[string]interface{})["documentPage"].(float64))
+			isUp := jsonObj.(map[string]interface{})["isUp"].(bool)
 
+			var meetingId int
+
+			if isUp {
+				meetingId = HandsUp(db, userId, documentId, documentPage)
+			} else {
+				meetingId = CancelHandsUp(db, userId, documentId, documentPage)
+			}
+
+			messagestruct = HandsUpResult{
+				MessageType: message_type,
+				MeetingId:   meetingId,
+				UserId:      userId,
+			}
 		case "finishword":
 			meetingId := int(jsonObj.(map[string]interface{})["meetingId"].(float64))
 			presenterId := jsonObj.(map[string]interface{})["presenterId"].(string)
