@@ -96,6 +96,14 @@ type HandsUpResult struct {
 	UserId      string `json:"userId"`
 }
 
+type ReactionResult struct {
+	MessageType  string `json:"messageType"`
+	MeetingId    int    `json:"meetingId"`
+	DocumentId   int    `json:"documentId"`
+	DocumentPage int    `json:"documentPage"`
+	ReactionNum  int    `json:"reactionNum"`
+}
+
 type ModeratorMsg struct {
 	MessageType      string `json:"messageType"`
 	MeetingId        int    `json:"meetingId"`
@@ -218,15 +226,34 @@ func (c *Client) readPump() {
 			var meetingId int
 
 			if isUp {
-				meetingId = HandsUp(db, userId, documentId, documentPage)
+				meetingId = handsUp(db, userId, documentId, documentPage)
 			} else {
-				meetingId = HandsDown(db, userId, documentId, documentPage)
+				meetingId = handsDown(db, userId, documentId, documentPage)
 			}
 
 			messagestruct = HandsUpResult{
 				MessageType: message_type,
 				MeetingId:   meetingId,
 				UserId:      userId,
+			}
+		case "reaction":
+			documentId := int(jsonObj.(map[string]interface{})["documentId"].(float64))
+			documentPage := int(jsonObj.(map[string]interface{})["documentPage"].(float64))
+			isReaction := jsonObj.(map[string]interface{})["isReaction"].(bool)
+
+			var (
+				meetingId   int
+				reactionNum int
+			)
+
+			meetingId, reactionNum = voteReaction(db, documentId, documentPage, isReaction)
+
+			messagestruct = ReactionResult{
+				MessageType:  message_type,
+				MeetingId:    meetingId,
+				DocumentId:   documentId,
+				DocumentPage: documentPage,
+				ReactionNum:  reactionNum,
 			}
 		case "finishword":
 			meetingId := int(jsonObj.(map[string]interface{})["meetingId"].(float64))
