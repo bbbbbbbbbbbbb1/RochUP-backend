@@ -267,7 +267,7 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 		questionUserId = question.UserId
 		return pickQuestioner, questionUserId, question.QuestionId
 	} else {
-		if not_voice_question_err := db.First(&question, "document_id = ? AND question_ok = false AND is_voice = false", documentId).Error; not_voice_question_err == nil {
+		if not_voice_question_err := db.First(&question, "document_id = ? AND question_ok = ? AND is_voice = ?", documentId, false, false).Error; not_voice_question_err == nil {
 			if question_err := db.Model(&question).Where("question_id = ?", question.QuestionId).Update("question_ok", true).Error; question_err != nil {
 				fmt.Printf("update失敗(質問の回答状況の更新に失敗しました): %d\n", question.QuestionId)
 				return false, "", -1
