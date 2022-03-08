@@ -256,7 +256,7 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 	location, _ := time.LoadLocation("Asia/Tokyo")
 	var questionId int
 
-	if voice_question_err := db.First(&question, "document_id = ? AND question_ok = false AND is_voice = true", documentId).Error; voice_question_err == nil {
+	if voice_question_err := db.First(&question, "document_id = ? AND question_ok = ? AND is_voice = ?", documentId, false, true).Error; voice_question_err == nil {
 		if question_err := db.Model(&question).Where("question_id = ?", question.QuestionId).Update("question_ok", true).Error; question_err != nil {
 			fmt.Printf("update失敗(質問の回答状況の更新に失敗しました): %d\n", question.QuestionId)
 			return false, "", -1
@@ -383,7 +383,7 @@ func CancelHandsUp(db *gorm.DB, userId string, documentId int, documentPage int)
 		fmt.Printf("資料が非存在: %d\n", documentId)
 		return -1
 	}
-	if err := db.Last(&question, "user_id = ? AND document_id = ? AND document_page = ? AND is_voice = true", userId, document.DocumentId, documentPage).Error; err != nil {
+	if err := db.Last(&question, "user_id = ? AND document_id = ? AND document_page = ? AND is_voice = ?", userId, document.DocumentId, documentPage, true).Error; err != nil {
 		fmt.Printf("質問が非存在: %s, %d, %d\n", userId, document.DocumentId, documentPage)
 		return -1
 	}
