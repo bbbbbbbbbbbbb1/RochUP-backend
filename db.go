@@ -12,27 +12,27 @@ import (
 )
 
 type User struct {
-	UserId       string `gorm:"PRIMARY_KEY"`
+	UserId       string //`gorm:"PRIMARY_KEY"`
 	UserName     string //`json:"user_name"`
 	UserPassword string //`json:"user_password"`
 }
 
 type Meeting struct {
-	MeetingId        int       `gorm:"PRIMARY_KEY"`
+	MeetingId        int       //`gorm:"PRIMARY_KEY"`
 	MeetingName      string    //`json:"meeting_name`
 	MeetingStartTime time.Time //`json:meeting_start_time`
 	MeetingDone      bool      //`json:meeting_done`
 }
 
 type Participant struct {
-	MeetingId        int    `gorm:"PRIMARY_KEY"`
-	UserId           string `gorm:"PRIMARY_KEY"`
+	MeetingId        int    //`gorm:"PRIMARY_KEY"`
+	UserId           string //`gorm:"PRIMARY_KEY"`
 	SpeakNum         int    //`json:"speaknum"`
 	ParticipantOrder int    //`json:"participantorder"`
 }
 
 type Question struct {
-	QuestionId   int `gorm:"PRIMARY_KEY"`
+	QuestionId   int //`gorm:"PRIMARY_KEY"`
 	UserId       string
 	QuestionBody string
 	DocumentId   int
@@ -44,7 +44,7 @@ type Question struct {
 }
 
 type Document struct {
-	DocumentId  int `gorm:"PRIMARY_KEY"`
+	DocumentId  int //`gorm:"PRIMARY_KEY"`
 	UserId      string
 	MeetingId   int
 	DocumentUrl *string
@@ -388,7 +388,7 @@ func HandsDown(db *gorm.DB, userId string, documentId int, documentPage int) int
 		fmt.Printf("ユーザーが非存在: %s\n", userId)
 		return -1
 	}
-	if question_err := db.Last(&question, "user_id = ? AND document_id = ? AND document_page = ? AND question_ok = ? AND is_voice = ?", userId, document.DocumentId, documentPage, false, true).Error; question_err != nil {
+	if question_err := db.First(&question, "user_id = ? AND document_id = ? AND document_page = ? AND question_ok = ? AND is_voice = ?", userId, document.DocumentId, documentPage, false, true).Error; question_err != nil {
 		fmt.Printf("質問が非存在: %s, %d, %d\n", userId, document.DocumentId, documentPage)
 		return -1
 	}
