@@ -220,7 +220,7 @@ func (c *Client) readPump() {
 			if isUp {
 				meetingId = HandsUp(db, userId, documentId, documentPage)
 			} else {
-				meetingId = CancelHandsUp(db, userId, documentId, documentPage)
+				meetingId = HandsDown(db, userId, documentId, documentPage)
 			}
 
 			messagestruct = HandsUpResult{
