@@ -383,7 +383,7 @@ func CancelHandsUp(db *gorm.DB, userId string, documentId int, documentPage int)
 		fmt.Printf("資料が非存在: %d\n", documentId)
 		return -1
 	}
-	if err := db.Last(&question, "user_id = ? AND document_id = ? AND document_page = ? AND is_voice = ?", userId, document.DocumentId, documentPage, true).Error; err != nil {
+	if err := db.Last(&question, "user_id = ? AND document_id = ? AND document_page = ? AND question_ok = ? AND is_voice = ?", userId, document.DocumentId, documentPage, false, true).Error; err != nil {
 		fmt.Printf("質問が非存在: %s, %d, %d\n", userId, document.DocumentId, documentPage)
 		return -1
 	}
