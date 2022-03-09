@@ -73,6 +73,21 @@ type DocumentGetResult struct {
 	Script      string `json:"script"`
 }
 
+type QuestionsGetRequest struct {
+	MeetingId int `json:"meetingId"`
+}
+
+type QuestionsGetResult struct {
+	Result        bool     `json:"result"`
+	MeetingId     int      `json:"meetingId"`
+	QuestionIds   []int    `json:"questionIds"`
+	QuestionBodys []string `json:"questionBodys"`
+	DocumentIds   []int    `json:"documentIds"`
+	DocumentPages []int    `json:"documentPages"`
+	QuestionTimes []string `json:"questionTimes"`
+	PresenterIds  []string `json:"presenterIds"`
+}
+
 func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 
 	e.GET("/", func(c echo.Context) error {
@@ -183,6 +198,27 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 				Result:      resultDocumentGet,
 				DocumentUrl: documentUrl,
 				Script:      script,
+			}
+			return c.JSON(http.StatusOK, result)
+		} else {
+			return c.JSON(http.StatusBadRequest, &Result{Result: false})
+		}
+	})
+
+	e.POST("/questions", func(c echo.Context) error {
+		request := new(QuestionsGetRequest)
+		err := c.Bind(request)
+		if err == nil {
+			resultQuestionsGet, meetingId, questionIds, questionBodys, documentIds, documentPages, questionTimes, presenterIds := questionsGet(db, request.MeetingId)
+			result := &QuestionsGetResult{
+				Result:        resultQuestionsGet,
+				MeetingId:     meetingId,
+				QuestionIds:   questionIds,
+				QuestionBodys: questionBodys,
+				DocumentIds:   documentIds,
+				DocumentPages: documentPages,
+				QuestionTimes: questionTimes,
+				PresenterIds:  presenterIds,
 			}
 			return c.JSON(http.StatusOK, result)
 		} else {

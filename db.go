@@ -43,6 +43,15 @@ type Question struct {
 	IsVoice      bool
 }
 
+type QuestionAndPresenterId struct {
+	QuestionId   int
+	QuestionBody string
+	DocumentId   int
+	DocumentPage int
+	QuestionTime time.Time
+	UserId       string
+}
+
 type Document struct {
 	DocumentId  int `gorm:"AUTO_INCREMENT"`
 	UserId      string
@@ -555,6 +564,34 @@ func documentGet(db *gorm.DB, documentId int) (bool, string, string) {
 		script = &emptyString
 	}
 	return true, *documentUrl, *script
+}
+
+func questionsGet(db *gorm.DB, meetingId int) (bool, int, []int, []string, []int, []int, []string, []string) {
+	var (
+		layout        = "2006/01/02 15:04:05"
+		location, _   = time.LoadLocation("Asia/Tokyo")
+		questions     = make([]QuestionAndPresenterId, 0, 10)
+		questionIds   = make([]int, 0, 10)
+		questionBodys = make([]string, 0, 10)
+		documentIds   = make([]int, 0, 10)
+		documentPages = make([]int, 0, 10)
+		questionTimes = make([]string, 0, 10)
+		presenterIds  = make([]string, 0, 10)
+	)
+	if db.Table("documents").Select("questions.question_id, questions.question_body, questions.document_id, questions.document_page, questions.question_time, documents.user_id").Where("documents.meeting_id = ?", meetingId).Joins("right join questions on documents.document_id = questions.document_id").Scan(&questions); len(questions) == 0 {
+		fmt.Printf("質問が非存在: %d\n", meetingId)
+		return false, meetingId, []int{}, []string{}, []int{}, []int{}, []string{}, []string{}
+	}
+	for _, q := range questions {
+		questionIds = append(questionIds, q.QuestionId)
+		questionBodys = append(questionBodys, q.QuestionBody)
+		documentIds = append(documentIds, q.DocumentId)
+		documentPages = append(documentPages, q.DocumentPage)
+		questionTimes = append(questionTimes, q.QuestionTime.In(location).Format(layout))
+		presenterIds = append(presenterIds, q.UserId)
+	}
+
+	return true, meetingId, questionIds, questionBodys, documentIds, documentPages, questionTimes, presenterIds
 }
 
 func getPresenterId(db *gorm.DB, documentId int) string {
