@@ -72,6 +72,12 @@ const (
 	ModeratorMsgType = "moderator_msg"
 )
 
+type DocumentUpdateResult struct {
+	MessageType string `json:"messageType"`
+	MeetingId   int    `json:"meetingId"`
+	DocumentId  int    `json:"documentId"`
+}
+
 type QuestionResult struct {
 	MessageType  string `json:"messageType"`
 	QuestionId   int    `json:"questionId"`
@@ -347,6 +353,17 @@ func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
 	} else {
 		fmt.Println("開始通知は既に予約済です:", startTime.In(location))
 	}
+}
+
+func (hub *Hub) sendDocumentUpdate(meetingId int, documentId int) {
+	messagestruct := DocumentUpdateResult{
+		MessageType: "document_update",
+		MeetingId:   meetingId,
+		DocumentId:  documentId,
+	}
+	messagejson, _ := json.Marshal(messagestruct)
+	hub.broadcast <- messagejson
+	fmt.Printf("資料更新通知を送信しました:%d, %d\n", meetingId, documentId)
 }
 
 // writePump pumps messages from the hub to the websocket connection.

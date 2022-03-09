@@ -161,9 +161,12 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 		request := new(DocumentRegisterRequest)
 		err := c.Bind(request)
 		if err == nil {
-			resultDocumentRegister := documentRegister(db, request.DocumentId, request.DocumentUrl, request.Script)
+			resultDocumentRegister, meetingId := documentRegister(db, request.DocumentId, request.DocumentUrl, request.Script)
 			result := &DocumentRegisterResult{
 				Result: resultDocumentRegister,
+			}
+			if result.Result {
+				go hub.sendDocumentUpdate(meetingId, request.DocumentId)
 			}
 			return c.JSON(http.StatusOK, result)
 		} else {
