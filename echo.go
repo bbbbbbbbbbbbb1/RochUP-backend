@@ -166,7 +166,7 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 				Result: resultDocumentRegister,
 			}
 			if result.Result {
-				go hub.sendDocumentUpdate(meetingId, request.DocumentId)
+				hub.sendDocumentUpdate(meetingId, request.DocumentId)
 			}
 			return c.JSON(http.StatusOK, result)
 		} else {
