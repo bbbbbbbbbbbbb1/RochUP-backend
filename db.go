@@ -516,6 +516,20 @@ func getUserName(db *gorm.DB, userId string) string {
 	return user.UserName
 }
 
+func getFirstPresenUserName(db *gorm.DB, meetingId int) string {
+	participants := make([]Participant, 0, 10)
+	if db.Find(&participants, "meeting_id = ? AND participant_order != -1", meetingId); len(participants) == 0 {
+		fmt.Println("会議非存在")
+		return ""
+	}
+
+	sort.Sort(ByParticipantOrder(participants))
+
+	userName := getUserName(db, participants[0].UserId)
+
+	return userName
+}
+
 func getQuestionBody(db *gorm.DB, questionId int) (string, int) {
 	var question Question
 	if err := db.First(&question, "question_id = ?", questionId).Error; err != nil {
