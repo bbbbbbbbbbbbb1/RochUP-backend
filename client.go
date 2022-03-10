@@ -345,7 +345,7 @@ func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
 			IsStartPresen:    true,
 			QuestionId:       -1,
 			QuestionUserId:   "",
-			PresentOrder:     -1,
+			PresentOrder:     0,
 		}
 		messagejson, _ := json.Marshal(message)
 		hub.broadcast <- messagejson
