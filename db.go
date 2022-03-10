@@ -237,13 +237,20 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 	}
 }
 
-func exitMeeting(db *gorm.DB, userId string, meetingId int) bool {
+func exitMeeting(db *gorm.DB, userId string, meetingId int, documentId int) bool {
 	var participant Participant
+	var question Question
 	if participant_err := db.Model(&participant).Where("meeting_id = ? AND user_id = ?", meetingId, userId).Update("is_joining", false).Error; participant_err != nil {
 		fmt.Printf("update失敗(参加者の参加状態の更新に失敗しました): %d, %s\n", meetingId, userId)
 		return false
 	}
 	fmt.Printf("update成功(参加者の参加状態の更新に成功しました): %d, %s\n", meetingId, userId)
+	if delete_question_err := db.First(&question, "user_id = ? AND document_id = ? AND question_ok = ? AND is_voice = ?", userId, documentId, false, true).Delete(&question, "user_id = ? AND document_id = ? AND question_ok = ? AND is_voice = ?", userId, documentId, false, true).Error; delete_question_err != nil {
+		fmt.Printf("delete失敗(質問が存在しないか，削除に失敗しました): %s, %d, %t, %t\n", userId, documentId, false, true)
+	} else {
+		fmt.Printf("delete成功(質問の削除に成功しました): %s, %d, %t, %t\n", userId, documentId, false, true)
+	}
+
 	fmt.Printf("exit成功: %s, %d\n", userId, meetingId)
 	return true
 }

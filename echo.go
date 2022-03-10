@@ -54,8 +54,9 @@ type JoinMeetingResult struct {
 }
 
 type ExitMeetingRequest struct {
-	UserId    string `json:"userId"`
-	MeetingId int    `json:"meetingId"`
+	UserId     string `json:"userId"`
+	MeetingId  int    `json:"meetingId"`
+	DocumentId int    `json:"documentId"`
 }
 
 type ExitMeetingResult struct {
@@ -163,7 +164,7 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 		request := new(ExitMeetingRequest)
 		err := c.Bind(request)
 		if err == nil {
-			resultExitMeeting := exitMeeting(db, request.UserId, request.MeetingId)
+			resultExitMeeting := exitMeeting(db, request.UserId, request.MeetingId, request.DocumentId)
 			result := &ExitMeetingResult{
 				Result: resultExitMeeting,
 			}
