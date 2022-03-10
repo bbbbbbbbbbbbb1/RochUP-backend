@@ -96,6 +96,7 @@ type QuestionsGetResult struct {
 	DocumentPages []int    `json:"documentPages"`
 	QuestionTimes []string `json:"questionTimes"`
 	PresenterIds  []string `json:"presenterIds"`
+	VoteNums      []int    `json:"voteNums"`
 }
 
 func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
@@ -234,7 +235,7 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 		request := new(QuestionsGetRequest)
 		err := c.Bind(request)
 		if err == nil {
-			resultQuestionsGet, meetingId, questionIds, questionBodys, documentIds, documentPages, questionTimes, presenterIds := questionsGet(db, request.MeetingId)
+			resultQuestionsGet, meetingId, questionIds, questionBodys, documentIds, documentPages, questionTimes, presenterIds, voteNums := questionsGet(db, request.MeetingId)
 			result := &QuestionsGetResult{
 				Result:        resultQuestionsGet,
 				MeetingId:     meetingId,
@@ -244,6 +245,7 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 				DocumentPages: documentPages,
 				QuestionTimes: questionTimes,
 				PresenterIds:  presenterIds,
+				VoteNums:      voteNums,
 			}
 			return c.JSON(http.StatusOK, result)
 		} else {
