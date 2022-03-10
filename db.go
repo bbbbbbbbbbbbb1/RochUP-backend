@@ -29,6 +29,7 @@ type Participant struct {
 	UserId           string //`gorm:"PRIMARY_KEY"`
 	SpeakNum         int    //`json:"speaknum"`
 	ParticipantOrder int    //`json:"participantorder"`
+	IsJoining        bool
 }
 
 type Question struct {
@@ -151,7 +152,7 @@ func createMeeting(db *gorm.DB, meetingName string, startTimeStr string, present
 	if err := db.Create(&meeting).Error; err == nil {
 		for i, presenter := range presenterIds {
 			if err := db.First(&user, "user_id = ?", presenter).Error; err == nil {
-				participant := Participant{MeetingId: meeting.MeetingId, UserId: user.UserId, SpeakNum: 0, ParticipantOrder: i}
+				participant := Participant{MeetingId: meeting.MeetingId, UserId: user.UserId, SpeakNum: 0, ParticipantOrder: i, IsJoining: false}
 				if err := db.Create(&participant).Error; err == nil {
 					document := Document{UserId: user.UserId, MeetingId: meeting.MeetingId}
 					if err := db.Create(&document).Error; err != nil {
@@ -184,12 +185,13 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 	user_info := db.First(&user, "user_id = ?", userId)
 	meeting_info := db.First(&meeting, "meeting_id = ?", meetingId)
 	if user_info.Error == nil && meeting_info.Error == nil {
-		participant_info := db.First(&participant, "user_id = ? AND meeting_id = ?", userId, meetingId)
+		participant_info := db.Model(&participant).Where("meeting_id = ? AND user_id = ?", meetingId, userId).Update("is_joining", true)
 		if participant_info.Error != nil {
 			participant.MeetingId = meetingId
 			participant.UserId = userId
 			participant.SpeakNum = 0
 			participant.ParticipantOrder = -1
+			participant.IsJoining = true
 			if err := db.Create(&participant).Error; err == nil {
 				fmt.Printf("参加者追加成功: %s, %d\n", userId, meetingId)
 			} else {
@@ -233,6 +235,17 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 		fmt.Println("ユーザーもしくは会議が非存在")
 		return false, "false", time.Now(), []string{}, []string{}, []int{}
 	}
+}
+
+func exitMeeting(db *gorm.DB, userId string, meetingId int) bool {
+	var participant Participant
+	if participant_err := db.Model(&participant).Where("meeting_id = ? AND user_id = ?", meetingId, userId).Update("is_joining", false).Error; participant_err != nil {
+		fmt.Printf("update失敗(参加者の参加状態の更新に失敗しました): %d, %s\n", meetingId, userId)
+		return false
+	}
+	fmt.Printf("update成功(参加者の参加状態の更新に成功しました): %d, %s\n", meetingId, userId)
+	fmt.Printf("exit成功: %s, %d\n", userId, meetingId)
+	return true
 }
 
 func documentRegister(db *gorm.DB, documentId int, documentUrl string, script string) (bool, int) {
@@ -304,7 +317,7 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 	}
 	if pickQuestioner {
 		participants := make([]Participant, 0, 10)
-		if db.Find(&participants, "meeting_id = ? AND user_id != ?", meetingId, presenterId); len(participants) != 0 {
+		if db.Find(&participants, "meeting_id = ? AND user_id != ? AND is_joining =?", meetingId, presenterId, true); len(participants) != 0 {
 			reactions := make([]Reaction, 0, 10)
 			if db.Find(&reactions, "document_id = ? AND suggestion_ok = ?", documentId, false); len(reactions) != 0 {
 				sort.Sort(ReverseByReactionNum(reactions))

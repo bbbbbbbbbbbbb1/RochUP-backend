@@ -53,6 +53,15 @@ type JoinMeetingResult struct {
 	DocumentIds      []int    `json:"documentIds"`
 }
 
+type ExitMeetingRequest struct {
+	UserId    string `json:"userId"`
+	MeetingId int    `json:"meetingId"`
+}
+
+type ExitMeetingResult struct {
+	Result bool `json:"result"`
+}
+
 type DocumentRegisterRequest struct {
 	DocumentId  int    `json:"documentId"`
 	DocumentUrl string `json:"documentUrl"`
@@ -142,6 +151,21 @@ func initRouting(e *echo.Echo, hub *Hub, db *gorm.DB) {
 			}
 			if result.Result {
 				go hub.sendStartMeetingMessage(request.MeetingId, meetingStartTime)
+			}
+			return c.JSON(http.StatusOK, result)
+		} else {
+			return c.JSON(http.StatusBadRequest, &Result{Result: false})
+		}
+
+	})
+
+	e.POST("/meeting/exit", func(c echo.Context) error {
+		request := new(ExitMeetingRequest)
+		err := c.Bind(request)
+		if err == nil {
+			resultExitMeeting := exitMeeting(db, request.UserId, request.MeetingId)
+			result := &ExitMeetingResult{
+				Result: resultExitMeeting,
 			}
 			return c.JSON(http.StatusOK, result)
 		} else {
