@@ -185,7 +185,7 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 	user_info := db.First(&user, "user_id = ?", userId)
 	meeting_info := db.First(&meeting, "meeting_id = ?", meetingId)
 	if user_info.Error == nil && meeting_info.Error == nil {
-		participant_info := db.Model(&participant).Where("meeting_id = ? AND user_id = ?", meetingId, userId).Update("is_joining", true)
+		participant_info := db.First(&participant, "meeting_id = ? AND user_id = ?", meetingId, userId).Where(&participant, "meeting_id = ? AND user_id = ?", meetingId, userId).Update("is_joining", true)
 		if participant_info.Error != nil {
 			participant.MeetingId = meetingId
 			participant.UserId = userId
