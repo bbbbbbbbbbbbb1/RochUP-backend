@@ -7,14 +7,14 @@ import (
 )
 
 const (
-	presenEndMessage         = "発表ありがとうございました．\n"
-	questionBodyAskMessage   = "匿名質問です．%dページについての質問です．%s\n"
-	questionModeratorMessage = "%dページについて疑問に思う方が多いようです．詳しい説明をお願いします．\n"
-	questionPersonMessage    = "次に%sさん，質問お願いします．\n"
-	questionEndMessage       = "回答ありがとうございました．\n"
-	personEndMessage         = "これで%sさんの発表時間を終わります．次の発表者は%sさんです．よろしくお願いします．\n"
-	meetingStartMessage      = "これから会議を開始します．最初の発表者は%sさんです．よろしくお願いします．\n"
-	meetingEndMessage        = "これで会議を終了します．お疲れ様でした．\n"
+	presenEndMessage         = "発表ありがとうございました。\n"
+	questionBodyAskMessage   = "匿名質問です。%dページについての質問です。%s\n"
+	questionModeratorMessage = "%dページについて疑問に思う方が多いようです。詳しい説明をお願いします。\n"
+	questionPersonMessage    = "次に%sさん、質問お願いします。\n"
+	questionEndMessage       = "回答ありがとうございました。\n"
+	personEndMessage         = "これで%sさんの発表時間を終わります。次の発表者は%sさんです。よろしくお願いします。\n"
+	meetingStartMessage      = "これから会議を開始します。最初の発表者は%sさんです。よろしくお願いします。\n"
+	meetingEndMessage        = "これで会議を終了します。お疲れ様でした。\n"
 )
 
 func presenOrQuestionEnd(db *gorm.DB, meetingId int, presenterId string, isPresenEnd bool, questionUserId string) (msg, qUserId string, qId int) {
