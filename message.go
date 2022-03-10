@@ -13,7 +13,7 @@ const (
 	questionPersonMessage    = "次に%sさん，質問お願いします．\n"
 	questionEndMessage       = "回答ありがとうございました．\n"
 	personEndMessage         = "これで%sさんの発表時間を終わります．次の発表者は%sさんです．よろしくお願いします．\n"
-	meetingStartMessage      = "これから会議を開始します．\n"
+	meetingStartMessage      = "これから会議を開始します．最初の発表者は%sさんです．よろしくお願いします．\n"
 	meetingEndMessage        = "これで会議を終了します．お疲れ様でした．\n"
 )
 
@@ -56,8 +56,10 @@ func personEnd(presenUserId string, nextUserId string, meetingId int) string {
 	return fmt.Sprintf(personEndMessage, presenUserName, nextUserName)
 }
 
-func meetingStart() string {
-	return meetingStartMessage
+func meetingStart(meetingId int) string {
+	FirstPresenUserName := getFirstPresenUserName(db, meetingId)
+
+	return fmt.Sprintf(meetingStartMessage, FirstPresenUserName)
 }
 
 func meetingEnd() string {

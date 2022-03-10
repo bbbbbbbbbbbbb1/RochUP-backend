@@ -340,7 +340,7 @@ func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
 		message := ModeratorMsg{
 			MessageType:      ModeratorMsgType,
 			MeetingId:        meetingId,
-			ModeratorMsgBody: meetingStart(),
+			ModeratorMsgBody: meetingStart(meetingId),
 			IsStartPresen:    true,
 			QuestionId:       -1,
 			QuestionUserId:   "",
