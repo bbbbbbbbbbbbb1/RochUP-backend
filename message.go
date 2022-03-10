@@ -17,7 +17,7 @@ const (
 	meetingEndMessage        = "これで会議を終了します．お疲れ様でした．\n"
 )
 
-func presenOrQuestionEnd(db *gorm.DB, meetingId int, presenterId string, isPresenEnd bool) (msg, qUserId string, qId int) {
+func presenOrQuestionEnd(db *gorm.DB, meetingId int, presenterId string, isPresenEnd bool, questionUserId string) (msg, qUserId string, qId int) {
 	var (
 		endMessage      string
 		pickQuestioner  bool
@@ -29,7 +29,7 @@ func presenOrQuestionEnd(db *gorm.DB, meetingId int, presenterId string, isPrese
 	} else {
 		endMessage = questionEndMessage
 	}
-	pickQuestioner, suggestQuestion, qUserId, qId = selectQuestion(db, meetingId, getDocumentId(db, presenterId, meetingId), presenterId)
+	pickQuestioner, suggestQuestion, qUserId, qId = selectQuestion(db, meetingId, getDocumentId(db, presenterId, meetingId), presenterId, questionUserId)
 
 	if pickQuestioner { // 質問者を当てる
 		qUserName := getUserName(db, qUserId)

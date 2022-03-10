@@ -294,9 +294,10 @@ func (c *Client) readPump() {
 			} else {
 				switch finishType {
 				case "present":
-					moderatorMsgBody, questionUserId, questionId = presenOrQuestionEnd(db, meetingId, presenterId, true)
+					moderatorMsgBody, questionUserId, questionId = presenOrQuestionEnd(db, meetingId, presenterId, true, "")
 				case "question":
-					moderatorMsgBody, questionUserId, questionId = presenOrQuestionEnd(db, meetingId, presenterId, false)
+					questionUserId := jsonObj.(map[string]interface{})["questionUserId"].(string)
+					moderatorMsgBody, questionUserId, questionId = presenOrQuestionEnd(db, meetingId, presenterId, false, questionUserId)
 				default:
 					fmt.Println("予期せぬfinishType:", finishType)
 					continue

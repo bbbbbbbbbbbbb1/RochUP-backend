@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"sort"
 	"time"
@@ -270,12 +269,12 @@ func createQuestion(db *gorm.DB, question Question) (bool, int) {
 	return true, question.QuestionId
 }
 
-func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) (bool, bool, string, int) {
+func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string, questionUserId string) (bool, bool, string, int) {
 	pickQuestioner := true
 	suggestQuestion := false
 	var question Question
 	var participant Participant
-	questionUserId := ""
+	nextQuestionUserId := ""
 	location, _ := time.LoadLocation("Asia/Tokyo")
 
 	if voice_question_err := db.First(&question, "document_id = ? AND question_ok = ? AND is_voice = ?", documentId, false, true).Error; voice_question_err == nil {
@@ -287,8 +286,8 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 			fmt.Printf("update失敗(参加者の話数の更新に失敗しました): %s, %d, %d\n", participant.UserId, participant.MeetingId, participant.SpeakNum)
 			return false, false, "", -1
 		}
-		questionUserId = question.UserId
-		return pickQuestioner, suggestQuestion, questionUserId, question.QuestionId
+		nextQuestionUserId = question.UserId
+		return pickQuestioner, suggestQuestion, nextQuestionUserId, question.QuestionId
 	} else {
 		if not_voice_question_err := db.First(&question, "document_id = ? AND question_ok = ? AND is_voice = ?", documentId, false, false).Error; not_voice_question_err == nil {
 			if question_err := db.Model(&question).Where("question_id = ?", question.QuestionId).Update("question_ok", true).Error; question_err != nil {
@@ -304,7 +303,7 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 	}
 	if pickQuestioner {
 		participants := make([]Participant, 0, 10)
-		if db.Find(&participants, "meeting_id = ? AND user_id != ?", meetingId, presenterId); len(participants) != 0 {
+		if db.Find(&participants, "meeting_id = ? AND user_id != ? AND user_id != ?", meetingId, presenterId, questionUserId); len(participants) != 0 {
 			reactions := make([]Reaction, 0, 10)
 			if db.Find(&reactions, "document_id = ? AND suggestion_ok = ?", documentId, false); len(reactions) != 0 {
 				sort.Sort(ReverseByReactionNum(reactions))
@@ -330,18 +329,19 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 					fmt.Printf("create成功(質問の登録に成功しました): %s, %d, %s\n", question.UserId, question.DocumentId, question.QuestionTime)
 					pickQuestioner = false
 					suggestQuestion = true
-					return pickQuestioner, suggestQuestion, questionUserId, question.QuestionId
+					return pickQuestioner, suggestQuestion, nextQuestionUserId, question.QuestionId
 				}
 			}
 			sort.Sort(BySpeakNum(participants))
-			rand_max := 3
-			if len(participants) < 3 {
-				rand_max = len(participants)
-			}
-			participant = participants[rand.Intn(rand_max)]
-			questionUserId = participant.UserId
+			// rand_max := 3
+			// if len(participants) < 3 {
+			//	rand_max = len(participants)
+			// }
+			// participant = participants[rand.Intn(rand_max)]
+			participant = participants[0]
+			nextQuestionUserId = participant.UserId
 			question = Question{
-				UserId:       questionUserId,
+				UserId:       nextQuestionUserId,
 				QuestionBody: "",
 				DocumentId:   documentId,
 				DocumentPage: -1,
@@ -365,7 +365,7 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string) 
 			return false, false, "", -1
 		}
 	}
-	return pickQuestioner, suggestQuestion, questionUserId, question.QuestionId
+	return pickQuestioner, suggestQuestion, nextQuestionUserId, question.QuestionId
 }
 
 func voteQuestion(db *gorm.DB, questionId int, isVote bool) (int, int, int) {
