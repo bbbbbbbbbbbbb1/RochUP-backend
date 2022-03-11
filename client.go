@@ -139,6 +139,7 @@ func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
+		fmt.Println("Warning: Web SocketをCloseしました in readPump")
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -377,6 +378,7 @@ func (c *Client) writePump() {
 	defer func() {
 		ticker.Stop()
 		c.conn.Close()
+		fmt.Println("Warning: Web SocketをCloseしました in writePump")
 	}()
 	for {
 		select {
@@ -419,11 +421,11 @@ func (c *Client) writePump() {
 func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Println("unsuccessed upgrade.")
+		fmt.Println("Error: Web SocketへのUpgradeに失敗しました")
 		log.Println(err)
 		return
 	} else {
-		fmt.Println("successed upgrade!")
+		fmt.Println("Log: Web SocketへのUpgradeに成功しました")
 	}
 	// sendは他の人からのメッセージが投入される
 	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
