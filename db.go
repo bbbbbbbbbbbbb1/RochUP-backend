@@ -204,6 +204,11 @@ func joinMeeting(db *gorm.DB, userId string, meetingId int) (bool, string, time.
 				fmt.Printf("Error: 参加者追加失敗: %s, %d in joinMeeting\n", userId, meetingId)
 				return false, "false", time.Now(), []string{}, []string{}, []int{}
 			}
+		} else {
+			if participant_err := db.Model(&participant).Where("meeting_id = ? AND user_id = ?", meetingId, userId).Update("is_joining", true).Error; participant_err != nil {
+				fmt.Printf("Error: update失敗(参加者の参加状態の更新に失敗しました): %s, %d in joinMeeting\n", userId, meetingId)
+				return false, "false", time.Now(), []string{}, []string{}, []int{}
+			}
 		}
 		if db.Find(&participants, "meeting_id = ? AND participant_order != ?", meetingId, -1); len(participants) == 0 {
 			fmt.Printf("Error: 発表者非存在: %d in joinMeeting\n", meetingId)
