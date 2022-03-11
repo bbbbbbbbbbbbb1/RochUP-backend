@@ -149,7 +149,7 @@ func (c *Client) readPump() {
 		// エラー処理
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				log.Printf("Error: error: %v in readPump\n", err)
 			}
 			break
 		}
@@ -157,10 +157,10 @@ func (c *Client) readPump() {
 		// websocketで受け取ったデータの処理
 		jsonObj, jsonerr := loadJson(message)
 		if jsonerr != nil {
-			fmt.Println("loadJsonでエラーが発生しました")
+			fmt.Printf("Error: loadJsonでエラーが発生しました in readPump\n")
 			continue
 		}
-		fmt.Printf(string(message) + "\n")
+		fmt.Printf("Log: " + string(message) + " in readPump\n")
 		message_type := jsonObj.(map[string]interface{})["messageType"].(string)
 
 		var messagestruct interface{}
@@ -299,7 +299,7 @@ func (c *Client) readPump() {
 					questionUserId = jsonObj.(map[string]interface{})["questionUserId"].(string)
 					moderatorMsgBody, questionUserId, questionId = presenOrQuestionEnd(db, meetingId, presenterId, false, questionUserId)
 				default:
-					fmt.Println("予期せぬfinishType:", finishType)
+					fmt.Printf("Error: 予期せぬfinishType: %s in readPump\n", finishType)
 					continue
 				}
 				if questionCount[meetingId] == 0 {
@@ -307,9 +307,9 @@ func (c *Client) readPump() {
 				} else {
 					questionCount[meetingId] += 1
 				}
-				fmt.Printf("現在の質問数：%d\n", questionCount[meetingId])
+				fmt.Printf("Log: 現在の質問数：%d in readPump\n", questionCount[meetingId])
 			}
-			fmt.Println(moderatorMsgBody)
+			fmt.Printf("Log: %s in readPump\n", moderatorMsgBody)
 
 			messagestruct = ModeratorMsg{
 				MessageType:      ModeratorMsgType,
@@ -326,7 +326,7 @@ func (c *Client) readPump() {
 		messagejson, _ := json.Marshal(messagestruct)
 
 		// 自分のメッセージをhubのbroadcastチャネルに送り込む
-		fmt.Printf("%+v\n", messagestruct)
+		fmt.Printf("Log: %+v in readPump\n", messagestruct)
 		c.hub.broadcast <- messagejson
 	}
 }
@@ -336,7 +336,7 @@ func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
 
 	if !isReserved[meetingId] {
 		isReserved[meetingId] = true
-		fmt.Println("開始通知を予約しました:", startTime.In(location))
+		fmt.Printf("Log: 開始通知を予約しました: %s in sendStartMeetingMessage\n", startTime.In(location))
 		time.Sleep(time.Until(startTime.In(location)))
 		message := ModeratorMsg{
 			MessageType:      ModeratorMsgType,
@@ -349,10 +349,10 @@ func (hub *Hub) sendStartMeetingMessage(meetingId int, startTime time.Time) {
 		}
 		messagejson, _ := json.Marshal(message)
 		hub.broadcast <- messagejson
-		fmt.Println("開始通知を送信しました:", time.Now().In(location))
+		fmt.Printf("Log: 開始通知を送信しました: %s in sendStartMeetingMessage\n", time.Now().In(location))
 		setMeetingDone(db, meetingId)
 	} else {
-		fmt.Println("開始通知は既に予約済です:", startTime.In(location))
+		fmt.Printf("Log: 開始通知は既に予約済です: %s in sendStartMeetingMessage\n", startTime.In(location))
 	}
 }
 
@@ -364,7 +364,7 @@ func (hub *Hub) sendDocumentUpdate(meetingId int, documentId int) {
 	}
 	messagejson, _ := json.Marshal(messagestruct)
 	hub.broadcast <- messagejson
-	fmt.Printf("資料更新通知を送信しました:%d, %d\n", meetingId, documentId)
+	fmt.Printf("Log: 資料更新通知を送信しました:%d, %d in sendDocumentUpdate\n", meetingId, documentId)
 }
 
 // writePump pumps messages from the hub to the websocket connection.
@@ -419,11 +419,11 @@ func (c *Client) writePump() {
 func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Println("unsuccessed upgrade.")
+		fmt.Printf("Error: unsuccessed upgrade. in serveWs\n")
 		log.Println(err)
 		return
 	} else {
-		fmt.Println("successed upgrade!")
+		fmt.Printf("Log: successed upgrade! in serveWs\n")
 	}
 	// sendは他の人からのメッセージが投入される
 	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
