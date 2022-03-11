@@ -160,7 +160,7 @@ func (c *Client) readPump() {
 			fmt.Printf("Error: loadJsonでエラーが発生しました in readPump\n")
 			continue
 		}
-		fmt.Printf("Log: " + string(message) + " in readPump\n")
+		fmt.Printf("Log: Receive: " + string(message) + " in readPump\n")
 		message_type := jsonObj.(map[string]interface{})["messageType"].(string)
 
 		var messagestruct interface{}
@@ -309,7 +309,6 @@ func (c *Client) readPump() {
 				}
 				fmt.Printf("Log: 現在の質問数：%d in readPump\n", questionCount[meetingId])
 			}
-			fmt.Printf("Log: %s in readPump\n", moderatorMsgBody)
 
 			messagestruct = ModeratorMsg{
 				MessageType:      ModeratorMsgType,
@@ -326,7 +325,7 @@ func (c *Client) readPump() {
 		messagejson, _ := json.Marshal(messagestruct)
 
 		// 自分のメッセージをhubのbroadcastチャネルに送り込む
-		fmt.Printf("Log: %+v in readPump\n", messagestruct)
+		fmt.Printf("Log: Send: %+v in readPump\n", messagestruct)
 		c.hub.broadcast <- messagejson
 	}
 }
