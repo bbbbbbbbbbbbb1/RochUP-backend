@@ -86,6 +86,12 @@ func (r ReverseByReactionNum) Len() int           { return len(r) }
 func (r ReverseByReactionNum) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r ReverseByReactionNum) Less(i, j int) bool { return r[i].ReactionNum > r[j].ReactionNum }
 
+type ReverseByVoteNum []Question
+
+func (q ReverseByVoteNum) Len() int           { return len(q) }
+func (q ReverseByVoteNum) Swap(i, j int)      { q[i], q[j] = q[j], q[i] }
+func (q ReverseByVoteNum) Less(i, j int) bool { return q[i].VoteNum > q[j].VoteNum }
+
 type BySpeakNum []Participant
 
 func (p BySpeakNum) Len() int           { return len(p) }
@@ -308,13 +314,15 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string, 
 		nextQuestionUserId = question.UserId
 		return pickQuestioner, suggestQuestion, nextQuestionUserId, question.QuestionId
 	} else {
-		if not_voice_question_err := db.First(&question, "document_id = ? AND question_ok = ? AND is_voice = ?", documentId, false, false).Error; not_voice_question_err == nil {
-			if question_err := db.Model(&question).Where("question_id = ?", question.QuestionId).Update("question_ok", true).Error; question_err != nil {
-				fmt.Printf("Error: update失敗(質問の回答状況の更新に失敗しました): %d in selectQuestion\n", question.QuestionId)
+		questions := make([]Question, 0, 10)
+		if db.Find(&questions, "document_id = ? AND question_ok = ? AND is_voice = ?", documentId, false, false); len(questions) != 0 {
+			sort.Sort(ReverseByVoteNum(questions))
+			if question_err := db.Model(&questions[0]).Where("question_id = ?", questions[0].QuestionId).Update("question_ok", true).Error; question_err != nil {
+				fmt.Printf("Error: update失敗(質問の回答状況の更新に失敗しました): %d in selectQuestion\n", questions[0].QuestionId)
 				return false, false, "", -1
 			}
 			pickQuestioner = false
-			if incSpeakNum_err := db.Model(&participant).Where("meeting_id = ? AND user_id = ?", meetingId, question.UserId).Update("speak_num", participant.SpeakNum+1).Error; incSpeakNum_err != nil {
+			if incSpeakNum_err := db.Model(&participant).Where("meeting_id = ? AND user_id = ?", meetingId, questions[0].UserId).Update("speak_num", participant.SpeakNum+1).Error; incSpeakNum_err != nil {
 				fmt.Printf("Error: update失敗(参加者の話数の更新に失敗しました): %s, %d, %d in selectQuestion\n", participant.UserId, participant.MeetingId, participant.SpeakNum)
 				return false, false, "", -1
 			}
