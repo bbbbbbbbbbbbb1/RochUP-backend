@@ -4,6 +4,8 @@
 
 package main
 
+import "fmt"
+
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
@@ -39,6 +41,7 @@ func (h *Hub) run() {
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
+				fmt.Println("Warning: unregisterによりWeb SocketをCloseしました in run(hub.go)")
 			}
 		case message := <-h.broadcast:
 			for client := range h.clients {
@@ -46,6 +49,7 @@ func (h *Hub) run() {
 				case client.send <- message:
 				default:
 					close(client.send)
+					fmt.Println("Warning: broadcastによりWeb SocketをCloseしました in run(hub.go)")
 					delete(h.clients, client)
 				}
 			}
