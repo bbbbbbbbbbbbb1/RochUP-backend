@@ -317,12 +317,13 @@ func selectQuestion(db *gorm.DB, meetingId, documentId int, presenterId string, 
 		questions := make([]Question, 0, 10)
 		if db.Find(&questions, "document_id = ? AND question_ok = ? AND is_voice = ?", documentId, false, false); len(questions) != 0 {
 			sort.Sort(ReverseByVoteNum(questions))
-			if question_err := db.Model(&questions[0]).Where("question_id = ?", questions[0].QuestionId).Update("question_ok", true).Error; question_err != nil {
-				fmt.Printf("Error: update失敗(質問の回答状況の更新に失敗しました): %d in selectQuestion\n", questions[0].QuestionId)
+			question = questions[0]
+			if question_err := db.Model(&question).Where("question_id = ?", question.QuestionId).Update("question_ok", true).Error; question_err != nil {
+				fmt.Printf("Error: update失敗(質問の回答状況の更新に失敗しました): %d in selectQuestion\n", question.QuestionId)
 				return false, false, "", -1
 			}
 			pickQuestioner = false
-			if incSpeakNum_err := db.Model(&participant).Where("meeting_id = ? AND user_id = ?", meetingId, questions[0].UserId).Update("speak_num", participant.SpeakNum+1).Error; incSpeakNum_err != nil {
+			if incSpeakNum_err := db.Model(&participant).Where("meeting_id = ? AND user_id = ?", meetingId, question.UserId).Update("speak_num", participant.SpeakNum+1).Error; incSpeakNum_err != nil {
 				fmt.Printf("Error: update失敗(参加者の話数の更新に失敗しました): %s, %d, %d in selectQuestion\n", participant.UserId, participant.MeetingId, participant.SpeakNum)
 				return false, false, "", -1
 			}
